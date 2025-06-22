@@ -1,4 +1,5 @@
-from flask import Flask, request, send_file
+# backend/app.py
+from flask import Flask, request, send_file, jsonify
 from flask_cors import CORS
 from openpyxl import load_workbook
 from io import BytesIO
@@ -7,88 +8,91 @@ from openai import OpenAI
 import os
 import xlwings as xw
 import tempfile
-import os
 
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client with API key
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# Flask app setup
 app = Flask(__name__)
 CORS(app)
 
-def convert_xls_to_xlsx(xls_file):
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.xls') as temp_xls:
+# Convert .xls to .xlsx using Excel via xlwings
+def convert_xls_to_xlsx(xls_file_storage):
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".xls") as temp_xls:
         xls_path = temp_xls.name
-        xls_file.save(xls_path)  # Save uploaded file to disk
+        xls_file_storage.save(xls_path)
 
-    xlsx_path = xls_path.replace('.xls', '.xlsx')
+    xlsx_path = xls_path.replace(".xls", ".xlsx")
 
-    # Launch Excel and convert using xlwings
-    app = xw.App(visible=False)
     try:
-        wb = app.books.open(xls_path)
+        app_excel = xw.App(visible=False)
+        wb = app_excel.books.open(xls_path)
         wb.save(xlsx_path)
         wb.close()
-    finally:
-        app.quit()
+        app_excel.quit()
+        return xlsx_path
 
-    return xlsx_path
+    except Exception as e:
+        print(f"[ERROR] Excel not available: {e}")
+        raise RuntimeError("Microsoft Excel is not installed or accessible. Please upload .xlsx files only.")
 
-# Function to translate text using GPT (OpenAI Python SDK v1+)
+# Translate text using GPT
+
 def translate_text(text, source_lang, target_lang):
     prompt = f"Translate this from {source_lang} to {target_lang}:\n\n{text}"
-
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
-            messages=[
-                {"role": "user", "content": prompt}
-            ],
+            messages=[{"role": "user", "content": prompt}],
             temperature=0.3
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         print(f"[ERROR] Failed to translate text:\n{e}")
-        return text  # Fallback to original if translation fails
+        return text
 
-# POST /translate endpoint
 @app.route('/translate', methods=['POST'])
 def translate_excel():
-    file = request.files['file']
+    uploaded_file = request.files['file']
     source_lang = request.form.get('sourceLang', 'auto')
     target_lang = request.form.get('targetLang', 'en')
 
-    # Load the uploaded Excel file
-    wb = load_workbook(filename=file)
-    ws = wb.active  # For now, just handle the first sheet
+    filename = uploaded_file.filename.lower()
 
-    # Translate all string cells
-    for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
-        for cell in row:
-            if isinstance(cell.value, str) and cell.value.strip():
-                translated = translate_text(cell.value, source_lang, target_lang)
-                cell.value = translated
+    try:
+        if filename.endswith('.xls'):
+            filepath = convert_xls_to_xlsx(uploaded_file)
+        else:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_xlsx:
+                filepath = temp_xlsx.name
+                uploaded_file.save(filepath)
 
-    # Save modified workbook to memory
-    output = BytesIO()
-    wb.save(output)
-    output.seek(0)
+        wb = load_workbook(filepath)
+        ws = wb.active
 
-    return send_file(
-        output,
-        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-        as_attachment=True,
-        download_name='translated_file.xlsx'
-    )
+        for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
+            for cell in row:
+                if isinstance(cell.value, str) and cell.value.strip():
+                    cell.value = translate_text(cell.value, source_lang, target_lang)
 
-# Optional test route
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name='translated_file.xlsx'
+        )
+
+    except RuntimeError as err:
+        return jsonify({"error": str(err)}), 400
+
 @app.route('/ping', methods=['GET'])
 def ping():
     return {"message": "Backend is alive!"}
 
-# Start the Flask app
 if __name__ == '__main__':
     app.run(debug=True)

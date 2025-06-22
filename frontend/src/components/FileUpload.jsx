@@ -8,40 +8,19 @@ function FileUpload({ onFileReady }) {
   const [isConverting, setIsConverting] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
+  const file = acceptedFiles[0];
+  if (!file) return;
 
-    const isXls = file.name.toLowerCase().endsWith('.xls');
-    const isXlsx = file.name.toLowerCase().endsWith('.xlsx');
+  const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
+  if (!isExcel) {
+    alert('Please upload a .xls or .xlsx file');
+    return;
+  }
 
-    if (!isXls && !isXlsx) {
-      alert('Please upload a .xls or .xlsx file');
-      return;
-    }
+  setFileName(file.name);
+  onFileReady(file); // Send directly to App.jsx
+}, [onFileReady]);
 
-    setFileName(file.name);
-    setIsConverting(true);
-
-    try {
-      let processedFile;
-
-      if (isXls) {
-        const xlsxBlob = await convertXlsToXlsx(file);
-        processedFile = new File([xlsxBlob], file.name.replace('.xls', '.xlsx'), {
-          type: xlsxBlob.type,
-        });
-      } else {
-        processedFile = file;
-      }
-
-      onFileReady(processedFile);
-    } catch (error) {
-      console.error('Conversion failed:', error);
-      alert('Failed to convert file');
-    } finally {
-      setIsConverting(false);
-    }
-  }, [onFileReady]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [] });
 
