@@ -63,5 +63,4 @@ function TranslateButton({ file, sourceLang, targetLang, selectedSheets }) {
   );
 }
 
-
 export default TranslateButton;
