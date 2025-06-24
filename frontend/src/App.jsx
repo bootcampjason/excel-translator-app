@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import FileUpload from './components/FileUpload';
 import LanguageSelector from './components/LanguageSelector';
@@ -18,7 +18,6 @@ function App() {
   const handleFileReady = async (file) => {
     setUploadedFile(file);
 
-    
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheets = workbook.SheetNames;
@@ -33,6 +32,10 @@ function App() {
     }
     setSheetPreviews(previews);
   };
+
+  useEffect(() => {
+    console.log('sheetPreviews', sheetPreviews)
+  }, [sheetPreviews]);
 
   return (
     <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>

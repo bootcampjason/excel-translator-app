@@ -8,18 +8,18 @@ function FileUpload({ onFileReady }) {
   const [isConverting, setIsConverting] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles) => {
-  const file = acceptedFiles[0];
-  if (!file) return;
+    const file = acceptedFiles[0];
+    if (!file) return;
 
-  const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
-  if (!isExcel) {
-    alert('Please upload a .xls or .xlsx file');
-    return;
-  }
+    const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
+    if (!isExcel) {
+      alert('Please upload a .xls or .xlsx file');
+      return;
+    }
 
-  setFileName(file.name);
-  onFileReady(file); // Send directly to App.jsx
-}, [onFileReady]);
+    setFileName(file.name);
+    onFileReady(file); // Send directly to App.jsx
+  }, [onFileReady]);
 
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [] });
