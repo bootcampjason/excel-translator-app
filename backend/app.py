@@ -15,7 +15,7 @@ load_dotenv()
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, expose_headers=["Content-Disposition"])
 
 @app.route("/")
 def home():
@@ -31,6 +31,7 @@ def translate_excel():
     filename = uploaded_file.filename.lower()
 
     start_time = time.time()
+    translation_cache = {}
 
     try:
         if filename.endswith('.xls'):
@@ -46,8 +47,15 @@ def translate_excel():
             for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
                 for cell in row:
                     if isinstance(cell.value, str) and cell.value.strip():
-                        cell.value = translate_text(cell.value, source_lang, target_lang)
-                        print(cell.value)
+                        original = cell.value.strip()
+
+                        if original in translation_cache:
+                            translated = translation_cache[original]
+                        else:
+                            translated = translate_text(original, source_lang, target_lang)
+                            translation_cache[original] = translated
+
+                        cell.value = translated
 
         output = BytesIO()
         wb.save(output)
@@ -56,11 +64,16 @@ def translate_excel():
         duration = time.time() - start_time  # ⏱ End timer
         print(f"[DEBUG] Translation completed in {duration:.2f} seconds")
 
+        original_name = os.path.splitext(uploaded_file.filename)[0]
+        translated_name = translate_text(original_name, source_lang, target_lang)
+        final_filename = f"{original_name} ({translated_name}).xlsx"
+        print('final_filename', final_filename)
+
         return send_file(
             output,
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
             as_attachment=True,
-            download_name='translated_file.xlsx'
+            download_name=final_filename
         )
 
     except RuntimeError as err:
@@ -87,7 +100,6 @@ def convert_xls_to_xlsx(xls_file):
         raise RuntimeError("Microsoft Excel is not installed or accessible. Please upload .xlsx files only.")
 
 # Translate text using GPT
-
 def translate_text(text, source_lang, target_lang):
     prompt = (
         f"You are a professional translator. "
