@@ -2,12 +2,13 @@ import React, { useEffect, useState } from 'react';
 import * as XLSX from 'xlsx';
 import FileUpload from './components/FileUpload';
 import LanguageSelector from './components/LanguageSelector';
-import TranslateButton from './components/TranslateButton';
+import TranslateAllButton from './components/TranslateAllButton';
 import SheetSelector from './components/SheetSelector';
 import { Button } from '@mui/material';
+import ClearAllButton from './components/ClearAllButton';
 
 function App() {
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [sourceLang, setSourceLang] = useState('ja');
   const [targetLang, setTargetLang] = useState('ko');
   const [sheetNames, setSheetNames] = useState([]);
@@ -16,12 +17,12 @@ function App() {
   const [previewVisible, setPreviewVisible] = useState(true);
 
   const handleFileReady = async (file) => {
-    setUploadedFile(file);
+    setUploadedFiles(prev => [...prev, file]);
 
     const data = await file.arrayBuffer();
     const workbook = XLSX.read(data, { type: 'array' });
     const sheets = workbook.SheetNames;
-    
+
     setSheetNames(sheets);
 
     const previews = {};
@@ -37,11 +38,32 @@ function App() {
     console.log('sheetPreviews', sheetPreviews)
   }, [sheetPreviews]);
 
+  useEffect(() => {
+    console.log('uploadedFiles', uploadedFiles)
+  }, [uploadedFiles]);
+
   return (
     <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
       <h1>Excel Language Translator</h1>
 
       <FileUpload onFileReady={handleFileReady} />
+      {uploadedFiles.length > 0 && (
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginTop: '10px',
+            padding: '0 10px',
+          }}
+        >
+          <p style={{ margin: 0, fontWeight: 500 }}>
+            ✅ {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
+          </p>
+          <ClearAllButton onClear={() => setUploadedFiles([])} />
+        </div>
+      )}
+
       <LanguageSelector
         sourceLang={sourceLang}
         targetLang={targetLang}
@@ -49,8 +71,9 @@ function App() {
           type === 'source' ? setSourceLang(val) : setTargetLang(val)
         }
       />
-      <TranslateButton
-        file={uploadedFile}
+
+      <TranslateAllButton
+        uploadedFiles={uploadedFiles}
         sourceLang={sourceLang}
         targetLang={targetLang}
       />
@@ -63,9 +86,9 @@ function App() {
         >
           {previewVisible ? 'Hide Previews' : 'Show Previews'}
         </Button>
-        
+
       )}
-      
+
 
       <SheetSelector
         sheetNames={sheetNames}

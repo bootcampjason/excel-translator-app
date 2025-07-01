@@ -8,21 +8,20 @@ function FileUpload({ onFileReady }) {
   const [isConverting, setIsConverting] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles) => {
-    const file = acceptedFiles[0];
-    if (!file) return;
 
-    const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
-    if (!isExcel) {
-      alert('Please upload a .xls or .xlsx file');
-      return;
+    for (const file of acceptedFiles) {
+      const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
+      if (!isExcel) {
+        alert(`❌ ${file.name} is not a valid Excel file`);
+        continue;
+      }
+
+      setFileName(file.name);
+      onFileReady(file); // Call your existing logic for each file
     }
-
-    setFileName(file.name);
-    onFileReady(file); // Send directly to App.jsx
   }, [onFileReady]);
 
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [] });
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [], multiple: true });
 
   return (
     <Paper
@@ -37,7 +36,7 @@ function FileUpload({ onFileReady }) {
         cursor: 'pointer',
       }}
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps()} multiple />
       <Typography variant="h6" gutterBottom>
         {isDragActive ? 'Drop your Excel file here...' : 'Drag & drop or click to upload an Excel file'}
       </Typography>
