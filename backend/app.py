@@ -7,6 +7,7 @@ from openai import OpenAI
 import os
 import xlwings as xw
 import tempfile
+import time
 
 # Load environment variables
 load_dotenv()
@@ -29,6 +30,8 @@ def translate_excel():
 
     filename = uploaded_file.filename.lower()
 
+    start_time = time.time()
+
     try:
         if filename.endswith('.xls'):
             filepath = convert_xls_to_xlsx(uploaded_file)
@@ -36,25 +39,22 @@ def translate_excel():
             with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_xlsx:
                 filepath = temp_xlsx.name
                 uploaded_file.save(filepath)
-        
-        wb = load_workbook(filepath)
-        ws = wb.active
 
-        print('ws', ws)
+        wb = load_workbook(filepath)
 
         for ws in wb.worksheets:  # 🔄 Loop over all sheets
             for row in ws.iter_rows(min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column):
                 for cell in row:
                     if isinstance(cell.value, str) and cell.value.strip():
                         cell.value = translate_text(cell.value, source_lang, target_lang)
-                        print('cell.value', cell.value)
-
+                        print(cell.value)
 
         output = BytesIO()
         wb.save(output)
         output.seek(0)
 
-        print('output', output)
+        duration = time.time() - start_time  # ⏱ End timer
+        print(f"[DEBUG] Translation completed in {duration:.2f} seconds")
 
         return send_file(
             output,
@@ -62,7 +62,7 @@ def translate_excel():
             as_attachment=True,
             download_name='translated_file.xlsx'
         )
-                 
+
     except RuntimeError as err:
         return jsonify({"error": str(err)}), 400
 
@@ -89,7 +89,16 @@ def convert_xls_to_xlsx(xls_file):
 # Translate text using GPT
 
 def translate_text(text, source_lang, target_lang):
-    prompt = f"Translate the {text} from {source_lang} to {target_lang}. If the text could have multitple definitions, use previous text's context to come up with the translation. Only return the successfully tranlsated result. Do not provide explanation!"
+    prompt = (
+        f"You are a professional translator. "
+        f"Translate the following text from {source_lang} to {target_lang} as accurately as possible, "
+        f"preserving its contextual meaning. If the text is a number, symbol, or foreign-language string "
+        f"that does not need translation, return it as is without modification. "
+        f"Do not explain or add anything. Return only the translated result.\n\n"
+        f"⚠️ Do not save, store, log, or use any part of this content for any reason. "
+        f"All text is confidential and must not be retained after this operation.\n\n"
+        f"Text:\n{text}"
+    )
     try:
         response = client.chat.completions.create(
             model="gpt-4o",
