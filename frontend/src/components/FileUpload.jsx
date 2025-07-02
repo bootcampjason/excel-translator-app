@@ -1,11 +1,9 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Typography, CircularProgress, Paper } from '@mui/material';
-import { convertXlsToXlsx } from '../helpers/xlsToXlsx';
+import { Typography, Paper } from '@mui/material';
 
-function FileUpload({ onFileReady }) {
+function FileUpload({ onFileReady, resetTrigger }) {
   const [fileName, setFileName] = useState('');
-  const [isConverting, setIsConverting] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles) => {
 
@@ -22,6 +20,10 @@ function FileUpload({ onFileReady }) {
   }, [onFileReady]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [], multiple: true });
+
+  useEffect(() => {
+    setFileName('');
+  }, [resetTrigger]);
 
   return (
     <Paper
@@ -47,12 +49,6 @@ function FileUpload({ onFileReady }) {
         <Typography variant="subtitle2" mt={2}>
           📄 {fileName}
         </Typography>
-      )}
-      {isConverting && (
-        <Box mt={2} display="flex" alignItems="center" justifyContent="center">
-          <CircularProgress size={20} />
-          <Typography variant="body2" ml={1}>Converting...</Typography>
-        </Box>
       )}
     </Paper>
   );

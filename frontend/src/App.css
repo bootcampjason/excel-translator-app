@@ -36,3 +36,46 @@
     transform: rotate(360deg);
   }
 }
+
+@keyframes progressStripe {
+  0% {
+    background-position: 0% 0%;
+  }
+  100% {
+    background-position: 40px 0%;
+  }
+}
+
+.progress-fill-animated {
+  background-image: linear-gradient(
+    45deg,
+    rgba(255, 255, 255, 0.15) 25%,
+    transparent 25%,
+    transparent 50%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0.15) 75%,
+    transparent 75%,
+    transparent
+  );
+  background-size: 40px 40px;
+  animation: progressStripe 1s linear infinite;
+}
+
+.start-over-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 30px;
+  animation: fadeSlideUp 0.5s ease-out forwards;
+  opacity: 0;
+}
+
+@keyframes fadeSlideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

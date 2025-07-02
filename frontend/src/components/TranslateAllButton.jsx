@@ -13,7 +13,8 @@ function TranslateAllButton({
   setFileStatuses,
   setGlobalProgress,
   setCompletionMessage,
-  setShowTranslateMore
+  isCompleted,
+  setIsCompleted
 }) {
 
   const handleTranslateAll = async () => {
@@ -66,15 +67,15 @@ function TranslateAllButton({
     }
     setGlobalProgress(100);
     setCompletionMessage('✅ All files have been translated and downloaded successfully.');
-    setShowTranslateMore(true);
     setIsTranslating(false);
+    setIsCompleted(true);
   };
 
   return (
     <Button
       variant="contained"
       color="primary"
-      disabled={uploadedFiles.length === 0 || isTranslating}
+      disabled={uploadedFiles.length === 0 || isTranslating || isCompleted}
       onClick={handleTranslateAll}
       sx={{ mt: 2 }}
     >

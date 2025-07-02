@@ -4,8 +4,9 @@ import FileUpload from './components/FileUpload';
 import LanguageSelector from './components/LanguageSelector';
 import TranslateAllButton from './components/TranslateAllButton';
 import SheetSelector from './components/SheetSelector';
-import { Button } from '@mui/material';
+import { Button, Typography, LinearProgress, Fade } from '@mui/material';
 import ClearAllButton from './components/ClearAllButton';
+import './App.css';
 
 function App() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -18,7 +19,8 @@ function App() {
   const [fileStatuses, setFileStatuses] = useState({}); // { filename: 'Pending' | 'Translating' | 'Done' | 'Error' }
   const [globalProgress, setGlobalProgress] = useState(0); // 0–100%
   const [completionMessage, setCompletionMessage] = useState('');
-  const [showTranslateMore, setShowTranslateMore] = useState(false);
+  const [isCompleted, setIsCompleted] = useState(false);
+  const [resetTrigger, setResetTrigger] = useState(0);
 
   const handleFileReady = async (file) => {
     setUploadedFiles(prev => [...prev, file]);
@@ -40,13 +42,29 @@ function App() {
     }));
   };
 
+  const handleReset = () => {
+    setUploadedFiles([]);
+    setFilePreviews({});
+    setExpandedSheets([]);
+    setFileStatuses({});
+    setGlobalProgress(0);
+    setCompletionMessage('');
+    setIsCompleted(false);
+    setResetTrigger(prev => prev + 1); // 💡 increment to trigger reset in FileUpload
+  }
+
   return (
     <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
-      <h1 align="center">Excel Language Translator</h1>
+      <Typography variant="h4" align="center" gutterBottom>
+        Excel Language Translator
+      </Typography>
+      <Typography variant="subtitle1" align="center" color="textSecondary" gutterBottom>
+        Upload and translate Excel files & download
+      </Typography>
 
-      {isTranslating && (
+      {(isTranslating || globalProgress === 100) && (
         <div style={{ margin: '20px 0' }}>
-          <p>Translating... ({globalProgress}%)</p>
+          <p>{isTranslating ? `Translating... (${globalProgress}%)` : `Completed (${globalProgress}%)`}</p>
           <div style={{
             height: 10,
             width: '100%',
@@ -54,12 +72,16 @@ function App() {
             borderRadius: 4,
             overflow: 'hidden'
           }}>
-            <div style={{
-              width: `${globalProgress}%`,
-              height: '100%',
-              backgroundColor: '#1976d2',
-              transition: 'width 0.3s ease'
-            }} />
+            <div
+              className={isTranslating ? 'progress-fill-animated' : ''}
+              style={{
+                width: `${globalProgress}%`,
+                height: '100%',
+                backgroundColor: '#1976d2',
+                transition: 'width 0.3s ease',
+              }}
+            />
+
           </div>
           {completionMessage && (
             <p style={{ marginTop: 8, fontWeight: 'bold', color: 'green' }}>{completionMessage}</p>
@@ -67,27 +89,8 @@ function App() {
         </div>
       )}
 
-      {showTranslateMore && (
-        <Button
-          variant="outlined"
-          color="secondary"
-          sx={{ mt: 2 }}
-          onClick={() => {
-            setUploadedFiles([]);
-            setFilePreviews({});
-            setExpandedSheets([]);
-            setFileStatuses({});
-            setGlobalProgress(0);
-            setCompletionMessage('');
-            setShowTranslateMore(false);
-          }}
-        >
-          Translate More Files
-        </Button>
-      )}
-
-      <FileUpload onFileReady={handleFileReady} />
-      {uploadedFiles.length > 0 && (
+      <FileUpload onFileReady={handleFileReady} resetTrigger={resetTrigger} disabled={isTranslating || isCompleted} />
+      {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
         <div
           style={{
             display: 'flex',
@@ -101,16 +104,11 @@ function App() {
             ✅ {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
           </p>
           <ClearAllButton
-            onClear={() => {
-              setUploadedFiles([]);
-              setFilePreviews({});
-              setExpandedSheets([]);
-              setFileStatuses({});
-              setGlobalProgress(0);
-            }}
+            onClear={handleReset}
           />
         </div>
       )}
+
 
       <LanguageSelector
         sourceLang={sourceLang}
@@ -130,7 +128,8 @@ function App() {
         setFileStatuses={setFileStatuses}
         setGlobalProgress={setGlobalProgress}
         setCompletionMessage={setCompletionMessage}
-        setShowTranslateMore={setShowTranslateMore}
+        isCompleted={isCompleted}
+        setIsCompleted={setIsCompleted}
       />
       {Object.keys(filePreviews).length > 0 && (
         <Button
@@ -144,6 +143,18 @@ function App() {
 
       )}
 
+      {isCompleted && (
+        <div className="start-over-container">
+          <Button
+            variant="contained"
+            color="success"
+            size="large"
+            onClick={handleReset}
+          >
+            🔄 Start Over
+          </Button>
+        </div>
+      )}
 
       {previewVisible && Object.keys(filePreviews).length > 0 && (
         Object.entries(filePreviews).map(([fileName, sheets]) => (
