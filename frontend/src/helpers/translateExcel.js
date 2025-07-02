@@ -1,3 +1,5 @@
+import * as XLSX from 'xlsx';
+
 export async function translateExcelFile(file, sourceLang, targetLang, onProgress = () => { }) {
   const formData = new FormData();
   formData.append('file', file);
@@ -13,6 +15,7 @@ export async function translateExcelFile(file, sourceLang, targetLang, onProgres
     const errorData = await response.json();
     throw new Error(errorData.error || 'Translation failed.');
   }
+
   const translatedBlob = await response.blob();
   // Needed for returning the correct file name
   const disposition = response.headers.get('Content-Disposition');

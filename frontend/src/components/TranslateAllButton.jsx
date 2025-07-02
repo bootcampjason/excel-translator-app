@@ -1,51 +1,90 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from '@mui/material';
 import { translateExcelFile } from '../helpers/translateExcel';
 import { saveAs } from 'file-saver';
 
-function TranslateAllButton({ uploadedFiles, sourceLang, targetLang }) {
-  const [progress, setProgress] = useState('');
-  const [loading, setLoading] = useState(false);
+function TranslateAllButton({
+  uploadedFiles,
+  sourceLang,
+  targetLang,
+  isTranslating,
+  setIsTranslating,
+  fileStatuses,
+  setFileStatuses,
+  setGlobalProgress,
+  setCompletionMessage,
+  setShowTranslateMore
+}) {
 
   const handleTranslateAll = async () => {
-    for (const file of uploadedFiles) {
+    setIsTranslating(true);
+    setGlobalProgress(0);
+    setFileStatuses({}); // Reset all statuses
+
+    /*
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const file = uploadedFiles[i];
+
       try {
-        setLoading(true);
-        setProgress('Starting translation...');
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
+
         const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang);
-        if (uploadedFiles.length > 1) {
-          saveAs(translatedBlob, filename);
-        }
+
         saveAs(translatedBlob, filename);
+
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));
       } catch (err) {
         console.error(`[ERROR] ${file.name} failed to translate:`, err);
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Error' }));
       }
+
+      // Update global progress
+      const percent = Math.round(((i + 1) / uploadedFiles.length) * 100);
+      setGlobalProgress(percent);
     }
+    */
+
+    for (let i = 0; i < uploadedFiles.length; i++) {
+      const file = uploadedFiles[i];
+
+      try {
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
+
+        const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang);
+
+        saveAs(translatedBlob, filename);
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));
+
+      } catch (err) {
+        console.error(`[ERROR] ${file.name} failed to translate:`, err);
+        setFileStatuses(prev => ({ ...prev, [file.name]: 'Error' }));
+      }
+
+      // Update global progress
+      const percent = Math.round(((i + 1) / uploadedFiles.length) * 100);
+      setGlobalProgress(percent);
+    }
+    setGlobalProgress(100);
+    setCompletionMessage('✅ All files have been translated and downloaded successfully.');
+    setShowTranslateMore(true);
+    setIsTranslating(false);
   };
 
   return (
-    <>
-      {uploadedFiles.length > 1 ?
-        <Button
-          variant="contained"
-          color="primary"
-          disabled={uploadedFiles.length === 0}
-          onClick={handleTranslateAll}
-          sx={{ mt: 2 }}
-        >
-          Generate All Files
-        </Button> :
-        <Button
-          variant="contained"
-          color="primary"
-          disabled={uploadedFiles.length === 0}
-          onClick={handleTranslateAll}
-          sx={{ mt: 2 }}
-        >
-          Generate File
-        </Button>
-      }
-    </>
+    <Button
+      variant="contained"
+      color="primary"
+      disabled={uploadedFiles.length === 0 || isTranslating}
+      onClick={handleTranslateAll}
+      sx={{ mt: 2 }}
+    >
+      {isTranslating
+        ? 'Translating...'
+        : uploadedFiles.length > 1
+          ? 'Generate All Files'
+          : 'Generate File'}
+    </Button>
+
   );
 }
 
