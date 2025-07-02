@@ -1,5 +1,3 @@
-import * as XLSX from 'xlsx';
-
 export async function translateExcelFile(file, sourceLang, targetLang, onProgress = () => { }) {
   const formData = new FormData();
   formData.append('file', file);

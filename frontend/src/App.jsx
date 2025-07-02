@@ -9,7 +9,7 @@ import ClearAllButton from './components/ClearAllButton';
 
 function App() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [sourceLang, setSourceLang] = useState('ja');
+  const [sourceLang, setSourceLang] = useState('en');
   const [targetLang, setTargetLang] = useState('ko');
   const [filePreviews, setFilePreviews] = useState({}); // { fileName: { sheetName: [...data] } }
   const [expandedSheets, setExpandedSheets] = useState([]);
@@ -42,7 +42,7 @@ function App() {
 
   return (
     <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
-      <h1>Excel Language Translator</h1>
+      <h1 align="center">Excel Language Translator</h1>
 
       {isTranslating && (
         <div style={{ margin: '20px 0' }}>
