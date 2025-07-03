@@ -1,71 +1,66 @@
 import React from 'react';
 import {
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
   Typography,
-  Box,
   Table,
   TableBody,
   TableCell,
   TableRow,
+  TableContainer,
   Paper,
-  Button,
 } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-function SheetSelector({
-  sheetNames,
-  sheetPreviews,
-  expandedSheets,
-  onToggleExpand,
-  previewVisible,
-}) {
-  if (!sheetNames || sheetNames.length === 0) return null;
-
+function SheetSelector({ sheetNames, sheetPreviews, expandedSheets, onToggleExpand }) {
   return (
-    <Box mt={3}>
-      <Typography variant="subtitle1" gutterBottom>
-        Sheet Previews:
-      </Typography>
-
-      {sheetNames.map((sheet) => {
-        const allRows = sheetPreviews?.[sheet] || [];
-        const isExpanded = expandedSheets.includes(sheet);
-        const rowsToShow = isExpanded ? allRows : allRows.slice(0, 5);
-
-        return (
-          <Box key={sheet} mt={2}>
-            <Typography variant="subtitle2">{sheet}</Typography>
-
-            {previewVisible && rowsToShow.length > 0 && (
-              <Paper variant="outlined" sx={{ mt: 1, p: 1, overflowX: 'auto' }}>
-                <Table size="small">
-                  <TableBody>
-                    {rowsToShow.map((row, rowIndex) => (
-                      <TableRow key={rowIndex}>
-                        {row.map((cell, cellIndex) => (
-                          <TableCell key={cellIndex}>
-                            {String(cell ?? '')}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-
-                {allRows.length > 5 && (
-                  <Box display="flex" justifyContent="flex-end" mt={1}>
-                    <Button
-                      size="small"
-                      onClick={() => onToggleExpand(sheet)}
+    <div>
+      {sheetNames.map((sheetName) => (
+        <Accordion
+          key={sheetName}
+          expanded={expandedSheets.includes(sheetName)}
+          onChange={() => onToggleExpand(sheetName)}
+          sx={{ mb: 1, border: '1px solid #ccc', borderRadius: 1 }}
+        >
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="subtitle1" fontWeight="bold">
+              📄 {sheetName}
+            </Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            <TableContainer
+              component={Paper}
+              sx={{
+                maxHeight: 300,
+                overflow: 'auto',
+                border: '1px solid #ddd',
+                backgroundColor: '#fafafa',
+              }}
+            >
+              <Table size="small">
+                <TableBody>
+                  {sheetPreviews[sheetName].map((row, rowIndex) => (
+                    <TableRow
+                      key={rowIndex}
+                      sx={{
+                        backgroundColor: rowIndex % 2 === 0 ? '#fff' : '#f9f9f9',
+                      }}
                     >
-                      {isExpanded ? 'Hide Full Preview' : 'Show Full Preview'}
-                    </Button>
-                  </Box>
-                )}
-              </Paper>
-            )}
-          </Box>
-        );
-      })}
-    </Box>
+                      {row.map((cell, colIndex) => (
+                        <TableCell key={colIndex} style={{ whiteSpace: 'pre-wrap' }}>
+                          {cell}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </AccordionDetails>
+        </Accordion>
+      ))}
+    </div>
   );
 }
 

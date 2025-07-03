@@ -2,6 +2,7 @@ import React from 'react';
 import { Button } from '@mui/material';
 import { translateExcelFile } from '../helpers/translateExcel';
 import { saveAs } from 'file-saver';
+import TranslateIcon from '@mui/icons-material/GTranslate';
 
 function TranslateAllButton({
   uploadedFiles,
@@ -75,9 +76,21 @@ function TranslateAllButton({
     <Button
       variant="contained"
       color="primary"
-      disabled={uploadedFiles.length === 0 || isTranslating || isCompleted}
+      size="large"
+      startIcon={<TranslateIcon />}
+      disabled={uploadedFiles.length === 0 || isTranslating}
       onClick={handleTranslateAll}
-      sx={{ mt: 2 }}
+      sx={{
+        mt: 3,
+        px: 4,
+        fontWeight: 'bold',
+        borderRadius: 2,
+        boxShadow: '0 3px 6px rgba(0,0,0,0.1)',
+        transition: 'all 0.2s ease-in-out',
+        '&:hover': {
+          backgroundColor: '#155fa0'
+        }
+      }}
     >
       {isTranslating
         ? 'Translating...'
@@ -85,6 +98,7 @@ function TranslateAllButton({
           ? 'Generate All Files'
           : 'Generate File'}
     </Button>
+
 
   );
 }

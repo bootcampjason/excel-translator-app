@@ -40,7 +40,7 @@ function FileUpload({ onFileReady, resetTrigger }) {
     >
       <input {...getInputProps()} multiple />
       <Typography variant="h6" gutterBottom>
-        {isDragActive ? 'Drop your Excel file here...' : 'Drag & drop or click to upload an Excel file'}
+        {isDragActive ? 'Drop your Excel file here...' : 'Drag & drop or click to upload Excel file(s)'}
       </Typography>
       <Typography variant="body2" color="textSecondary">
         (.xls or .xlsx only)
