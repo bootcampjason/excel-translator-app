@@ -1,28 +1,29 @@
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Box, Typography, CircularProgress, Paper } from '@mui/material';
-import { convertXlsToXlsx } from '../helpers/xlsToXlsx';
+import { Typography, Paper } from '@mui/material';
 
-function FileUpload({ onFileReady }) {
+function FileUpload({ onFileReady, resetTrigger }) {
   const [fileName, setFileName] = useState('');
-  const [isConverting, setIsConverting] = useState(false);
 
   const onDrop = useCallback(async (acceptedFiles) => {
-  const file = acceptedFiles[0];
-  if (!file) return;
 
-  const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
-  if (!isExcel) {
-    alert('Please upload a .xls or .xlsx file');
-    return;
-  }
+    for (const file of acceptedFiles) {
+      const isExcel = file.name.toLowerCase().endsWith('.xls') || file.name.toLowerCase().endsWith('.xlsx');
+      if (!isExcel) {
+        alert(`❌ ${file.name} is not a valid Excel file`);
+        continue;
+      }
 
-  setFileName(file.name);
-  onFileReady(file); // Send directly to App.jsx
-}, [onFileReady]);
+      setFileName(file.name);
+      onFileReady(file); // Call your existing logic for each file
+    }
+  }, [onFileReady]);
 
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [], multiple: true });
 
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({ onDrop, accept: [] });
+  useEffect(() => {
+    setFileName('');
+  }, [resetTrigger]);
 
   return (
     <Paper
@@ -37,9 +38,9 @@ function FileUpload({ onFileReady }) {
         cursor: 'pointer',
       }}
     >
-      <input {...getInputProps()} />
+      <input {...getInputProps()} multiple />
       <Typography variant="h6" gutterBottom>
-        {isDragActive ? 'Drop your Excel file here...' : 'Drag & drop or click to upload an Excel file'}
+        {isDragActive ? 'Drop your Excel file here...' : 'Drag & drop or click to upload Excel file(s)'}
       </Typography>
       <Typography variant="body2" color="textSecondary">
         (.xls or .xlsx only)
@@ -48,12 +49,6 @@ function FileUpload({ onFileReady }) {
         <Typography variant="subtitle2" mt={2}>
           📄 {fileName}
         </Typography>
-      )}
-      {isConverting && (
-        <Box mt={2} display="flex" alignItems="center" justifyContent="center">
-          <CircularProgress size={20} />
-          <Typography variant="body2" ml={1}>Converting...</Typography>
-        </Box>
       )}
     </Paper>
   );
