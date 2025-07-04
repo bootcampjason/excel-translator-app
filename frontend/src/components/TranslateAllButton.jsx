@@ -82,14 +82,7 @@ function TranslateAllButton({
       onClick={handleTranslateAll}
       sx={{
         mt: 3,
-        px: 4,
-        fontWeight: 'bold',
-        borderRadius: 2,
-        boxShadow: '0 3px 6px rgba(0,0,0,0.1)',
-        transition: 'all 0.2s ease-in-out',
-        '&:hover': {
-          backgroundColor: '#155fa0'
-        }
+        px: 3,
       }}
     >
       {isTranslating

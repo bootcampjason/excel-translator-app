@@ -78,249 +78,252 @@ function App() {
   }, []);
 
   return (
-    <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
+    <>
       <AuthAppBar user={user} />
-      <Typography variant="h4" align="center" gutterBottom>
-        Excel Language Translator
-      </Typography>
-      <Typography variant="subtitle1" align="center" color="textSecondary" gutterBottom>
-        Upload and translate Excel files & download
-      </Typography>
-
-      {!user ? (
-        <Typography align="center" color="textSecondary" sx={{ mt: 4 }}>
-          Please sign in to use the translation feature.
+      <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
+        <Typography variant="h4" align="center" gutterBottom>
+          Excel Language Translator
         </Typography>
-      ) : (
-        <>
-          {(isTranslating || globalProgress === 100) && (
-            <div style={{ margin: '20px 0' }}>
-              <p>{isTranslating ? `Translating... (${globalProgress}%)` : `Completed (${globalProgress}%)`}</p>
-              <div style={{
-                height: 10,
-                width: '100%',
-                backgroundColor: '#eee',
-                borderRadius: 4,
-                overflow: 'hidden'
-              }}>
-                <div
-                  className={isTranslating ? 'progress-fill-animated' : ''}
-                  style={{
-                    width: `${globalProgress}%`,
-                    height: '100%',
-                    backgroundColor: '#1976d2',
-                    transition: 'width 0.3s ease',
-                  }}
-                />
-              </div>
-              {completionMessage && (
-                <p style={{ marginTop: 8, fontWeight: 'bold', color: 'green' }}>{completionMessage}</p>
-              )}
-            </div>
-          )}
+        <Typography variant="subtitle1" align="center" color="textSecondary" gutterBottom>
+          Upload and translate Excel files & download
+        </Typography>
 
-          <FileUpload onFileReady={handleFileReady} resetTrigger={resetTrigger} disabled={isTranslating || isCompleted} />
-          {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginTop: '10px',
-                padding: '0 10px',
-              }}
-            >
-              <p style={{ margin: 0, fontWeight: 500 }}>
-                ✅ {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
-              </p>
-              <ClearAllButton onClear={handleReset} />
-            </div>
-          )}
-
-          <LanguageSelector
-            sourceLang={sourceLang}
-            targetLang={targetLang}
-            onChange={(type, val) =>
-              type === 'source' ? setSourceLang(val) : setTargetLang(val)
-            }
-          />
-
-          <TranslateAllButton
-            uploadedFiles={uploadedFiles}
-            sourceLang={sourceLang}
-            targetLang={targetLang}
-            isTranslating={isTranslating}
-            setIsTranslating={setIsTranslating}
-            fileStatuses={fileStatuses}
-            setFileStatuses={setFileStatuses}
-            setGlobalProgress={setGlobalProgress}
-            setCompletionMessage={setCompletionMessage}
-            isCompleted={isCompleted}
-            setIsCompleted={setIsCompleted}
-          />
-
-          {Object.keys(filePreviews).length > 0 && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-              <Button
-                variant="text"
-                size="medium"
-                onClick={() => setPreviewVisible(prev => !prev)}
-                endIcon={
-                  previewVisible
-                    ? <ExpandLessIcon sx={{ fontSize: 20 }} />
-                    : <ExpandMoreIcon sx={{ fontSize: 20 }} />
-                }
-                sx={{
-                  mt: 1,
-                  alignSelf: 'flex-end',
-                  fontWeight: 'bold',
-                  color: '#1976d2',
-                  textTransform: 'none',
-                  '&:hover': {
-                    backgroundColor: '#e3f2fd'
-                  }
-                }}
-              >
-                {previewVisible ? 'Hide Previews' : 'Show Previews'}
-              </Button>
-            </div>
-          )}
-
-          {isCompleted && (
-            <div className="start-over-container">
-              <Button
-                variant="contained"
-                color="success"
-                size="large"
-                onClick={handleReset}
-              >
-                <RestartAltIcon /> Start Over
-              </Button>
-            </div>
-          )}
-
-          {previewVisible &&
-            Object.entries(filePreviews).map(([fileName, sheets]) => {
-              const isTranslatingThisFile = fileStatuses[fileName] === 'Translating';
-              return (
-                <div key={fileName} style={{ marginTop: 24 }}>
-                  <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span>
-                      {fileName}
-                      {fileStatuses[fileName] && (
-                        <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 400, color: '#888' }}>
-                          — {fileStatuses[fileName]}
-                        </span>
-                      )}
-                    </span>
-
-                    {isTranslatingThisFile && (
-                      <span style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontSize: 14 }}>
-                        <span
-                          className="spinner"
-                          style={{
-                            width: 16,
-                            height: 16,
-                            border: '2px solid #1976d2',
-                            borderTop: '2px solid transparent',
-                            borderRadius: '50%',
-                            marginRight: 8,
-                            animation: 'spin 1s linear infinite'
-                          }}
-                        />
-                        Translating... (This may take a couple of minutes)
-                      </span>
-                    )}
-                  </h3>
-
-                  <SheetSelector
-                    sheetNames={Object.keys(sheets)}
-                    sheetPreviews={sheets}
-                    expandedSheets={expandedSheets}
-                    onToggleExpand={(sheetName) =>
-                      setExpandedSheets((prev) =>
-                        prev.includes(sheetName)
-                          ? prev.filter((n) => n !== sheetName)
-                          : [...prev, sheetName]
-                      )
-                    }
-                    previewVisible={previewVisible}
+        {!user ? (
+          <Typography align="center" color="textSecondary" sx={{ mt: 4 }}>
+            Please sign in to use the translation feature.
+          </Typography>
+        ) : (
+          <>
+            {(isTranslating || globalProgress === 100) && (
+              <div style={{ margin: '20px 0' }}>
+                <p>{isTranslating ? `Translating... (${globalProgress}%)` : `Completed (${globalProgress}%)`}</p>
+                <div style={{
+                  height: 10,
+                  width: '100%',
+                  backgroundColor: '#eee',
+                  borderRadius: 4,
+                  overflow: 'hidden'
+                }}>
+                  <div
+                    className={isTranslating ? 'progress-fill-animated' : ''}
+                    style={{
+                      width: `${globalProgress}%`,
+                      height: '100%',
+                      backgroundColor: '#1976d2',
+                      transition: 'width 0.3s ease',
+                    }}
                   />
                 </div>
-              );
-            })}
-        </>
-      )}
+                {completionMessage && (
+                  <p style={{ marginTop: 8, fontWeight: 'bold', color: 'green' }}>{completionMessage}</p>
+                )}
+              </div>
+            )}
 
-      {/* Benefits Section */}
-      <Box
-        sx={{
-          mt: 3,
-          mb: 4,
-          px: 2,
-          py: 2,
-          backgroundColor: '#f9f9f9',
-          borderRadius: 2,
-          boxShadow: 1,
-        }}
-      >
-        <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 600 }}>
-          Why Use This App?
-        </Typography>
-        <List dense>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon sx={{ color: 'green' }} />
-            </ListItemIcon>
-            <ListItemText primary="Upload multiple Excel files at once" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon sx={{ color: 'green' }} />
-            </ListItemIcon>
-            <ListItemText primary="Preserves Excel formatting and styles" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon sx={{ color: 'green' }} />
-            </ListItemIcon>
-            <ListItemText primary="Supports both .xls and .xlsx formats" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon sx={{ color: 'green' }} />
-            </ListItemIcon>
-            <ListItemText primary="Fast and secure translation powered by GPT" />
-          </ListItem>
-          <ListItem>
-            <ListItemIcon>
-              <CheckCircleIcon sx={{ color: 'green' }} />
-            </ListItemIcon>
-            <ListItemText primary="Translated files automatically downloaded" />
-          </ListItem>
-        </List>
-      </Box>
+            <FileUpload onFileReady={handleFileReady} resetTrigger={resetTrigger} disabled={isTranslating || isCompleted} />
+            {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
+              <div
+                style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginTop: '10px',
+                  padding: '0 10px',
+                }}
+              >
+                <p style={{ margin: 0, fontWeight: 500 }}>
+                  ✅ {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
+                </p>
+                <ClearAllButton onClear={handleReset} />
+              </div>
+            )}
 
-      {/* Security & Privacy Notice */}
-      <Paper
-        elevation={2}
-        sx={{
-          mt: 6,
-          p: 3,
-          backgroundColor: '#f9f9f9',
-          borderLeft: '5px solid #1976d2',
-        }}
-      >
-        <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-          🔒 Your Data is Safe
-        </Typography>
-        <Typography variant="body2" color="textSecondary">
-          We take your privacy seriously. All files you upload and any text content processed through this service are{' '}
-          <strong>never stored, saved, or logged</strong>. Translations are handled securely and processed in-memory only.
-          Your data is not used for training or shared with any third party.
-        </Typography>
-      </Paper>
-    </div>
+            <LanguageSelector
+              sourceLang={sourceLang}
+              targetLang={targetLang}
+              onChange={(type, val) =>
+                type === 'source' ? setSourceLang(val) : setTargetLang(val)
+              }
+            />
+
+            <TranslateAllButton
+              uploadedFiles={uploadedFiles}
+              sourceLang={sourceLang}
+              targetLang={targetLang}
+              isTranslating={isTranslating}
+              setIsTranslating={setIsTranslating}
+              fileStatuses={fileStatuses}
+              setFileStatuses={setFileStatuses}
+              setGlobalProgress={setGlobalProgress}
+              setCompletionMessage={setCompletionMessage}
+              isCompleted={isCompleted}
+              setIsCompleted={setIsCompleted}
+            />
+
+            {Object.keys(filePreviews).length > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
+                <Button
+                  variant="text"
+                  size="medium"
+                  onClick={() => setPreviewVisible(prev => !prev)}
+                  endIcon={
+                    previewVisible
+                      ? <ExpandLessIcon sx={{ fontSize: 20 }} />
+                      : <ExpandMoreIcon sx={{ fontSize: 20 }} />
+                  }
+                  sx={{
+                    mt: 1,
+                    alignSelf: 'flex-end',
+                    fontWeight: 'bold',
+                    color: '#1976d2',
+                    textTransform: 'none',
+                    '&:hover': {
+                      backgroundColor: '#e3f2fd'
+                    }
+                  }}
+                >
+                  {previewVisible ? 'Hide Previews' : 'Show Previews'}
+                </Button>
+              </div>
+            )}
+
+            {isCompleted && (
+              <div className="start-over-container">
+                <Button
+                  variant="contained"
+                  color="success"
+                  size="large"
+                  onClick={handleReset}
+                >
+                  <RestartAltIcon /> Start Over
+                </Button>
+              </div>
+            )}
+
+            {previewVisible &&
+              Object.entries(filePreviews).map(([fileName, sheets]) => {
+                const isTranslatingThisFile = fileStatuses[fileName] === 'Translating';
+                return (
+                  <div key={fileName} style={{ marginTop: 24 }}>
+                    <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span>
+                        {fileName}
+                        {fileStatuses[fileName] && (
+                          <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 400, color: '#888' }}>
+                            — {fileStatuses[fileName]}
+                          </span>
+                        )}
+                      </span>
+
+                      {isTranslatingThisFile && (
+                        <span style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontSize: 14 }}>
+                          <span
+                            className="spinner"
+                            style={{
+                              width: 16,
+                              height: 16,
+                              border: '2px solid #1976d2',
+                              borderTop: '2px solid transparent',
+                              borderRadius: '50%',
+                              marginRight: 8,
+                              animation: 'spin 1s linear infinite'
+                            }}
+                          />
+                          Translating... (This may take a couple of minutes)
+                        </span>
+                      )}
+                    </h3>
+
+                    <SheetSelector
+                      sheetNames={Object.keys(sheets)}
+                      sheetPreviews={sheets}
+                      expandedSheets={expandedSheets}
+                      onToggleExpand={(sheetName) =>
+                        setExpandedSheets((prev) =>
+                          prev.includes(sheetName)
+                            ? prev.filter((n) => n !== sheetName)
+                            : [...prev, sheetName]
+                        )
+                      }
+                      previewVisible={previewVisible}
+                    />
+                  </div>
+                );
+              })}
+          </>
+        )}
+
+        {/* Benefits Section */}
+        <Box
+          sx={{
+            mt: 3,
+            mb: 4,
+            px: 2,
+            py: 2,
+            backgroundColor: '#f9f9f9',
+            borderRadius: 2,
+            boxShadow: 1,
+          }}
+        >
+          <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 600 }}>
+            Why Use This App?
+          </Typography>
+          <List dense>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircleIcon sx={{ color: 'green' }} />
+              </ListItemIcon>
+              <ListItemText primary="Upload multiple Excel files at once" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircleIcon sx={{ color: 'green' }} />
+              </ListItemIcon>
+              <ListItemText primary="Preserves Excel formatting and styles" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircleIcon sx={{ color: 'green' }} />
+              </ListItemIcon>
+              <ListItemText primary="Supports both .xls and .xlsx formats" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircleIcon sx={{ color: 'green' }} />
+              </ListItemIcon>
+              <ListItemText primary="Fast and secure translation powered by GPT" />
+            </ListItem>
+            <ListItem>
+              <ListItemIcon>
+                <CheckCircleIcon sx={{ color: 'green' }} />
+              </ListItemIcon>
+              <ListItemText primary="Translated files automatically downloaded" />
+            </ListItem>
+          </List>
+        </Box>
+
+        {/* Security & Privacy Notice */}
+        <Paper
+          elevation={2}
+          sx={{
+            mt: 6,
+            p: 3,
+            backgroundColor: '#f9f9f9',
+            borderLeft: '5px solid #1976d2',
+          }}
+        >
+          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+            🔒 Your Data is Safe
+          </Typography>
+          <Typography variant="body2" color="textSecondary">
+            We take your privacy seriously. All files you upload and any text content processed through this service are{' '}
+            <strong>never stored, saved, or logged</strong>. Translations are handled securely and processed in-memory only.
+            Your data is not used for training or shared with any third party.
+          </Typography>
+        </Paper>
+      </div>
+    </>
+
   );
 }
 

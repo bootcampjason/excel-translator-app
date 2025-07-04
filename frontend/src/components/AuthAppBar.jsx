@@ -47,7 +47,7 @@ function AuthAppBar() {
   };
 
   return (
-    <AppBar position="static" color="primary">
+    <AppBar position="sticky" color="primary" elevation={3}>
       <Toolbar>
         <Typography variant="h6" sx={{ flexGrow: 1 }}>
           Excel Translator
