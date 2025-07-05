@@ -9,6 +9,8 @@ import {
   signInWithPopup,
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
+import FileSpeakLogoWhite from '../assets/images/FileSpeakLogo_white.png';
+import { Link } from 'react-router-dom';
 
 function AuthAppBar() {
   const [user, setUser] = useState(null);
@@ -48,10 +50,16 @@ function AuthAppBar() {
 
   return (
     <AppBar position="sticky" color="primary" elevation={3}>
-      <Toolbar>
-        <Typography variant="h6" sx={{ flexGrow: 1 }}>
-          Excel Translator
-        </Typography>
+      <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
+        <Box display="flex" alignItems="center" gap={1}>
+          <Link to="/" style={{ textDecoration: 'none', display: 'flex', alignItems: 'center' }}>
+            <img
+              src={FileSpeakLogoWhite}
+              alt="FileSpeak logo"
+              style={{ height: 36 }}
+            />
+          </Link>
+        </Box>
         {!user ? (
           <Box>
             <Button color="inherit" onClick={handleEmailLogin}>

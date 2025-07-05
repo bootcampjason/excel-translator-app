@@ -23,29 +23,6 @@ function TranslateAllButton({
     setGlobalProgress(0);
     setFileStatuses({}); // Reset all statuses
 
-    /*
-    for (let i = 0; i < uploadedFiles.length; i++) {
-      const file = uploadedFiles[i];
-
-      try {
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
-
-        const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang);
-
-        saveAs(translatedBlob, filename);
-
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));
-      } catch (err) {
-        console.error(`[ERROR] ${file.name} failed to translate:`, err);
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Error' }));
-      }
-
-      // Update global progress
-      const percent = Math.round(((i + 1) / uploadedFiles.length) * 100);
-      setGlobalProgress(percent);
-    }
-    */
-
     for (let i = 0; i < uploadedFiles.length; i++) {
       const file = uploadedFiles[i];
 

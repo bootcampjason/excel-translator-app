@@ -309,7 +309,7 @@ function App() {
             mt: 6,
             p: 3,
             backgroundColor: '#f9f9f9',
-            borderLeft: '5px solid #1976d2',
+            borderLeft: '5px solid #d32f2f',
           }}
         >
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
