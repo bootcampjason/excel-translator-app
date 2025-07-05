@@ -3,6 +3,8 @@ import { Button } from '@mui/material';
 import { translateExcelFile } from '../helpers/translateExcel';
 import { saveAs } from 'file-saver';
 import TranslateIcon from '@mui/icons-material/GTranslate';
+import { useNavigate } from 'react-router-dom';
+import { auth } from '../firebase';
 
 function TranslateAllButton({
   uploadedFiles,
@@ -15,10 +17,17 @@ function TranslateAllButton({
   setGlobalProgress,
   setCompletionMessage,
   isCompleted,
-  setIsCompleted
+  setIsCompleted,
 }) {
+  const navigate = useNavigate();
 
   const handleTranslateAll = async () => {
+    const currentUser = auth.currentUser;
+    if (!currentUser) {
+      navigate('/login');
+      return;
+    }
+
     setIsTranslating(true);
     setGlobalProgress(0);
     setFileStatuses({}); // Reset all statuses

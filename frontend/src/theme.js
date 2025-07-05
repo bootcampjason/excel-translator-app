@@ -11,6 +11,9 @@ const theme = createTheme({
       main: '#d32f2f',         // Red for delete/cancel
       contrastText: '#fff',
     },
+    googleLight: {
+      main: '#F2F2F2'
+    }
   },
   components: {
     MuiButton: {

@@ -11,16 +11,11 @@ import {
 } from 'firebase/auth';
 import FileSpeakLogoWhite from '../assets/images/FileSpeakLogo_white.png';
 import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
 function AuthAppBar() {
   const [user, setUser] = useState(null);
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-    });
-    return () => unsub();
-  }, []);
+  const navigate = useNavigate();
 
   const handleEmailLogin = async () => {
     const email = prompt("Email:");
@@ -48,6 +43,13 @@ function AuthAppBar() {
     await signOut(auth);
   };
 
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+    });
+    return () => unsub();
+  }, []);
+
   return (
     <AppBar position="sticky" color="primary" elevation={3}>
       <Toolbar sx={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -61,20 +63,31 @@ function AuthAppBar() {
           </Link>
         </Box>
         {!user ? (
-          <Box>
-            <Button color="inherit" onClick={handleEmailLogin}>
-              Login / Signup
-            </Button>
-            <Button color="inherit" onClick={handleGoogleLogin}>
-              Google
-            </Button>
-          </Box>
+          <Button
+            color="inherit"
+            onClick={() => navigate('/login')}
+            sx={{
+              textTransform: 'none',
+              fontWeight: 500,
+              borderRadius: 20,
+            }}
+          >
+            Sign In
+          </Button>
         ) : (
           <Box display="flex" alignItems="center" gap={2}>
-            <Typography variant="body2">
+            <Typography variant="body2" sx={{ fontWeight: 500 }}>
               {user.email}
             </Typography>
-            <Button color="inherit" onClick={handleLogout}>
+            <Button
+              color="inherit"
+              onClick={handleLogout}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 500,
+                borderRadius: 20,
+              }}
+            >
               Logout
             </Button>
           </Box>
