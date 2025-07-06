@@ -11,6 +11,12 @@ const theme = createTheme({
       main: '#d32f2f',         // Red for delete/cancel
       contrastText: '#fff',
     },
+    googleLight: {
+      main: '#F2F2F2'
+    },
+    white: {
+      main: '#fff',
+    }
   },
   components: {
     MuiButton: {
@@ -33,6 +39,13 @@ const theme = createTheme({
             backgroundColor: '#fcebea',  // Light red background
             borderColor: '#b71c1c',
             color: '#b71c1c',
+          },
+        },
+        outlinedWhite: {
+          borderColor: '#fff',
+          color: '#fff',
+          '&:hover': {
+            backgroundColor: '#278752',
           },
         },
       },
