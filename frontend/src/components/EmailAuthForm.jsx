@@ -1,93 +1,200 @@
-// src/components/EmailAuthForm.jsx
 import React, { useState } from 'react';
 import {
-  TextField, Button, Box, Typography, IconButton, InputAdornment
+  Box,
+  TextField,
+  Button,
+  Typography,
+  Link,
+  Snackbar,
+  Alert,
 } from '@mui/material';
-import { Visibility, VisibilityOff } from '@mui/icons-material';
 import { auth } from '../firebase';
 import {
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword
+  createUserWithEmailAndPassword,
+  sendPasswordResetEmail,
 } from 'firebase/auth';
+import { useNavigate } from 'react-router-dom';
+import Divider from '@mui/material/Divider';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
-function EmailAuthForm() {
+function EmailAuthForm({ onClose }) {
+  const [mode, setMode] = useState('login'); // 'login', 'signup', 'reset'
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isSignup, setIsSignup] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
+  const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
 
-  const handleAuth = async () => {
-    setError('');
-    try {
-      if (isSignup) {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } else {
-        await signInWithEmailAndPassword(auth, email, password);
+  const navigate = useNavigate();
+
+  const showSnackbar = (message, severity = 'success') => {
+    setSnack({ open: true, message, severity });
+  };
+
+  const errorMsg = (code) => {
+    switch (code) {
+      case 'auth/invalid-email':
+        return 'Invalid email address format.';
+      case 'auth/user-not-found':
+        return 'No account found with this email.';
+      case 'auth/wrong-password':
+        return 'Incorrect password.';
+      case 'auth/email-already-in-use':
+        return 'This email is already registered.';
+      case 'auth/weak-password':
+        return 'Password should be at least 6 characters.';
+      case 'auth/missing-password':
+        return 'Password is required.';
+      default:
+        return 'Incorrect email or password. Please try again.';
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setSnack({ open: false, message: '', severity: 'success' });
+
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      showSnackbar('Email is required.', 'error');
+      return;
+    }
+
+    if (mode === 'reset') {
+      try {
+        await sendPasswordResetEmail(auth, trimmedEmail);
+        showSnackbar('Password reset email sent.');
+        setMode('login');
+      } catch (err) {
+        showSnackbar(errorMsg(err.code), 'error');
       }
+      return;
+    }
+
+    if (password.length < 6) {
+      showSnackbar('Password must be at least 6 characters long.', 'error');
+      return;
+    }
+
+    try {
+      if (mode === 'login') {
+        await signInWithEmailAndPassword(auth, trimmedEmail, password);
+        showSnackbar('✅ Logged in successfully.');
+      } else {
+        await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+        showSnackbar('✅ Account created! You are now signed in.');
+      }
+
+      setTimeout(() => {
+        onClose?.();
+        navigate('/');
+      }, 1000);
     } catch (err) {
-      setError(err.message);
+      showSnackbar(errorMsg(err.code), 'error');
     }
   };
 
   return (
-    <Box mt={4}>
-      <Typography variant="subtitle1" fontWeight={600} gutterBottom>
-        {isSignup ? 'Create an Account' : 'Sign in with Email'}
-      </Typography>
+    <>
+    <Divider>Or</Divider>
+      <Box component="form" onSubmit={handleSubmit} mt={3}>
 
-      <TextField
-        fullWidth
-        label="Email"
-        type="email"
-        margin="normal"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
+        {mode === 'reset' && (
+          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
+            Reset your password
+          </Typography>
+        )}
 
-      <TextField
-        fullWidth
-        label="Password"
-        type={showPassword ? 'text' : 'password'}
-        margin="normal"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        InputProps={{
-          endAdornment: (
-            <InputAdornment position="end">
-              <IconButton onClick={() => setShowPassword(prev => !prev)} edge="end">
-                {showPassword ? <VisibilityOff /> : <Visibility />}
-              </IconButton>
-            </InputAdornment>
-          ),
-        }}
-      />
+        {mode === 'login' && (
+          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
+            Login with your email
+          </Typography>
+        )}
 
-      {error && (
-        <Typography color="error" variant="body2" mt={1}>
-          {error}
-        </Typography>
-      )}
+        {mode === 'signup' && (
+          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
+            Create new account 
+          </Typography>
+        )}
 
-      <Button
-        fullWidth
-        variant="contained"
-        color="primary"
-        sx={{ mt: 2, borderRadius: 2, textTransform: 'none' }}
-        onClick={handleAuth}
+        <TextField
+          fullWidth
+          type="email"
+          label="Email"
+          variant="outlined"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          sx={{ mb: 2 }}
+        />
+
+        {mode !== 'reset' && (
+          <TextField
+            fullWidth
+            type="password"
+            label="Password"
+            variant="outlined"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+        )}
+
+        <Button type="submit" fullWidth variant="contained" color="primary">
+          {mode === 'login'
+            ? 'Log In'
+            : mode === 'signup'
+              ? 'Sign Up'
+              : 'Send Reset Link'}
+        </Button>
+
+        <Box mt={2} display="flex" justifyContent="space-between" flexWrap="wrap">
+          {mode !== 'reset' ? (
+            <>
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                onClick={() =>
+                  setMode((prev) => (prev === 'login' ? 'signup' : 'login'))
+                }
+              >
+                {mode === 'login'
+                  ? "Don't have an account? Sign up"
+                  : 'Already have an account?'}
+              </Link>
+
+              <Link
+                component="button"
+                type="button"
+                variant="body2"
+                onClick={() => setMode('reset')}
+              >
+                Forgot Password?
+              </Link>
+            </>
+          ) : (
+            <Link
+              component="button"
+              type="button"
+              variant="body2"
+              onClick={() => setMode('login')}
+            >
+              Back to login
+            </Link>
+          )}
+        </Box>
+      </Box>
+
+      <Snackbar
+        open={snack.open}
+        autoHideDuration={3000}
+        onClose={() => setSnack((prev) => ({ ...prev, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        {isSignup ? 'Create Account' : 'Sign In'}
-      </Button>
-
-      <Button
-        fullWidth
-        variant="text"
-        sx={{ mt: 1, textTransform: 'none' }}
-        onClick={() => setIsSignup(prev => !prev)}
-      >
-        {isSignup ? 'Already have an account? Sign in' : "Don't have an account? Create one"}
-      </Button>
-    </Box>
+        <Alert severity={snack.severity} sx={{ width: '100%' }}>
+          {snack.message}
+        </Alert>
+      </Snackbar>
+    </>
   );
 }
 

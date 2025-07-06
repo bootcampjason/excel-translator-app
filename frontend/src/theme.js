@@ -13,6 +13,9 @@ const theme = createTheme({
     },
     googleLight: {
       main: '#F2F2F2'
+    },
+    white: {
+      main: '#fff',
     }
   },
   components: {
@@ -36,6 +39,13 @@ const theme = createTheme({
             backgroundColor: '#fcebea',  // Light red background
             borderColor: '#b71c1c',
             color: '#b71c1c',
+          },
+        },
+        outlinedWhite: {
+          borderColor: '#fff',
+          color: '#fff',
+          '&:hover': {
+            backgroundColor: '#278752',
           },
         },
       },

@@ -38,6 +38,7 @@ function HomePage() {
   const [completionMessage, setCompletionMessage] = useState('');
   const [isCompleted, setIsCompleted] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
+  
 
   const handleFileReady = async (file) => {
     setUploadedFiles((prev) => [...prev, file]);
@@ -77,7 +78,6 @@ function HomePage() {
 
   return (
     <>
-      <AuthAppBar user={user} />
       <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
         <Typography variant="h4" align="center" gutterBottom>
           Excel Language Translator

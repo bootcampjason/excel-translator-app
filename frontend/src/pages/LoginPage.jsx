@@ -5,6 +5,7 @@ import { auth, googleProvider } from '../firebase';
 import { useNavigate } from 'react-router-dom';
 import EmailAuthForm from '../components/EmailAuthForm';
 import GoogleLogo from '../assets/images/google_logo.png';
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -66,12 +67,21 @@ function LoginPage() {
           </Button>
         )}
 
-        {/* Email Form (with smooth transition) */}
         <Fade in={showEmailForm}>
           <div>
             {showEmailForm && <EmailAuthForm />}
           </div>
         </Fade>
+        <Box display="flex" justifyContent="flex-start">
+          <Button
+            variant="text"
+            startIcon={<ArrowBackIcon />}
+            onClick={() => navigate(-1)}
+            sx={{ mt: 2 }}
+          >
+            Cancel
+          </Button>
+        </Box>
       </Paper>
     </Box>
   );
