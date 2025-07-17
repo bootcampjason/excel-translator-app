@@ -16,3 +16,4 @@ __pycache__/
 # macOS / Windows OS artifacts
 .DS_Store
 Thumbs.db
+firebase-adminsdk.json

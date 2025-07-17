@@ -55,7 +55,8 @@ function TranslateAllButton({
       try {
         setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
 
-        const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang);
+        const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang, currentUser);
+
         saveAs(translatedBlob, filename);
 
         setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));

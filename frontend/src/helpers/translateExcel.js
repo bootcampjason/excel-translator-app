@@ -1,12 +1,17 @@
-export async function translateExcelFile(file, sourceLang, targetLang, onProgress = () => { }) {
+export async function translateExcelFile(file, sourceLang, targetLang, user, onProgress = () => {}) {
   const formData = new FormData();
   formData.append('file', file);
   formData.append('sourceLang', sourceLang);
   formData.append('targetLang', targetLang);
 
+  console.log('user', user)
+
   const response = await fetch(`${process.env.REACT_APP_API_URL}/translate`, {
     method: 'POST',
     body: formData,
+    headers: {
+      'X-User-Id': user?.uid || '', // 🔐 Attach UID for backend usage tracking
+    }
   });
 
   if (!response.ok) {

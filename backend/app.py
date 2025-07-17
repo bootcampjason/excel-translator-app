@@ -4,6 +4,8 @@ from openpyxl import load_workbook
 from io import BytesIO
 from dotenv import load_dotenv
 from openai import OpenAI
+from firebase_admin import credentials, firestore, initialize_app
+from utils.char_counter import estimate_chars_in_file
 import os
 import xlwings as xw
 import tempfile
@@ -17,6 +19,17 @@ client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 app = Flask(__name__)
 CORS(app, expose_headers=["Content-Disposition"])
 
+# Firebase Admin Init
+cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+initialize_app(cred)
+db = firestore.client()
+
+PLANS = {
+    "free": 10000,
+    "starter": 50000,
+    "pro": 200000
+}
+
 @app.route("/")
 def home():
     return "✅ Backend is running!"
@@ -24,9 +37,23 @@ def home():
 @app.route('/translate', methods=['POST'])
 def translate_excel():
     print('***********DEBUG*********')
+    uid = request.headers.get('X-User-Id')
+    print('uid', uid)
+    if not uid:
+        return jsonify({"error": "Missing user ID"}), 400
+
     uploaded_file = request.files['file']
     source_lang = request.form.get('sourceLang', 'auto')
     target_lang = request.form.get('targetLang', 'en')
+
+    # Get user from Firestore
+    print('cred', cred)
+    print('db', db.collection("users").document(uid))
+    user_ref = db.collection("users").document(uid)
+    user_doc = user_ref.get()
+    if not user_doc.exists:
+        print('user not found')
+        return jsonify({"error": "User not found"}), 404
 
     filename = uploaded_file.filename.lower()
 
