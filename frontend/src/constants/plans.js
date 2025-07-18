@@ -7,11 +7,11 @@ export const PLANS = {
   starter: {
     name: "Starter",
     maxCharacters: 50000,
-    monthlyPrice: 9,
+    monthlyPrice: 4.99,
   },
   pro: {
     name: "Pro",
     maxCharacters: 200000,
-    monthlyPrice: 29,
+    monthlyPrice: 14.99,
   },
 };

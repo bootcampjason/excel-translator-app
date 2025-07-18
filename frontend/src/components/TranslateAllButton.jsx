@@ -44,6 +44,8 @@ function TranslateAllButton({
     setGlobalProgress(0);
     setFileStatuses({}); // Reset all statuses
 
+    const localFileStatuses = {};
+
     for (let i = 0; i < uploadedFiles.length; i++) {
       const file = uploadedFiles[i];
 
@@ -56,13 +58,19 @@ function TranslateAllButton({
         setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
 
         const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang, currentUser);
-
         saveAs(translatedBlob, filename);
 
         setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));
       } catch (err) {
         console.error(`[ERROR] ${file.name} failed to translate:`, err);
         setFileStatuses(prev => ({ ...prev, [file.name]: 'Error' }));
+        localFileStatuses[file.name] = 'Error';
+
+        if (err.message === 'Character limit exceeded') {
+        showSnackbar('❌ You have exceeded your monthly character limit. Please upgrade your plan.', 'error');
+        } else {
+          showSnackbar(`❌ Failed to translate ${file.name}`, 'error');
+        }
       }
 
       // Update global progress
@@ -70,13 +78,19 @@ function TranslateAllButton({
       setGlobalProgress(percent);
     }
     setIsTranslating(false);
-    setIsCompleted(true);
 
-    if (!shouldCancelRef.current) {
+    const hadError = Object.values(localFileStatuses).includes('Error');
+    const wasCancelled = shouldCancelRef.current;
+
+    if (!wasCancelled && !hadError) {
+      setIsCompleted(true);
       setGlobalProgress(100);
       setCompletionMessage('✅ All files have been translated and downloaded successfully.');
+    } else if (hadError) {
+      setCompletionMessage('⚠️ Some files failed to translate. Please check the status and try again.');
     }
   };
+
   const handleCancelConfirm = () => {
     shouldCancelRef.current = true;
     setIsTranslating(false);
