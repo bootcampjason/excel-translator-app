@@ -12,6 +12,7 @@ import tempfile
 import time
 from datetime import datetime, timezone, timedelta
 import stripe
+import json
 
 # Load environment variables
 load_dotenv()
@@ -22,7 +23,13 @@ app = Flask(__name__)
 CORS(app, expose_headers=["Content-Disposition"])
 
 # Firebase Admin Init
-cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+firebase_json = os.getenv("FIREBASE_CONFIG_JSON")
+if not firebase_json:
+    raise RuntimeError("FIREBASE_CONFIG_JSON environment variable is missing.")
+
+firebase_creds = json.loads(firebase_json)
+# cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+cred = credentials.Certificate(firebase_creds)
 initialize_app(cred)
 db = firestore.client()
 
