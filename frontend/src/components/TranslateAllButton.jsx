@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button, Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
 import { translateExcelFile } from '../helpers/translateExcel';
 import { saveAs } from 'file-saver';
@@ -81,9 +81,10 @@ function TranslateAllButton({
 
     const hadError = Object.values(localFileStatuses).includes('Error');
     const wasCancelled = shouldCancelRef.current;
+    setIsCompleted(true);
 
     if (!wasCancelled && !hadError) {
-      setIsCompleted(true);
+      // setIsCompleted(true);
       setGlobalProgress(100);
       setCompletionMessage('✅ All files have been translated and downloaded successfully.');
     } else if (hadError) {
@@ -104,7 +105,7 @@ function TranslateAllButton({
         color="primary"
         size="large"
         startIcon={<TranslateIcon />}
-        disabled={uploadedFiles.length === 0 || isTranslating}
+        disabled={uploadedFiles.length === 0 || isTranslating ||isCompleted }
         onClick={handleTranslateAll}
         sx={{
           mt: 3,

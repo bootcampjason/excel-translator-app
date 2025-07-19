@@ -119,7 +119,7 @@ function HomePage() {
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
-            marginTop: '10px',
+            marginTop: '10px',  
             padding: '0 10px',
           }}>
             <p style={{ margin: 0, fontWeight: 500 }}>
