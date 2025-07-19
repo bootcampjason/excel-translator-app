@@ -147,6 +147,7 @@ function HomePage() {
           setCompletionMessage={setCompletionMessage}
           isCompleted={isCompleted}
           setIsCompleted={setIsCompleted}
+          user={user}
         />
 
         {Object.keys(filePreviews).length > 0 && (
