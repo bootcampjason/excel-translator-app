@@ -1,6 +1,6 @@
 # 🌍 Excel Translator App    
 **FileSpeak** translates spreadsheets in one step
-Upload & download your translated excel file with its layout, merged cells, or embedded objects preserved.
+Upload & download your translated excel file with its layout, merged cells, or embedded objects preserved.<br />
 👉 [Try the live version](https://filespeak.net) (SSL Certificate)
 <br />
 <br />
@@ -94,8 +94,8 @@ python app.py
 ## About the Developer
 Hi, I’m Jason Cho — a full-stack engineer passionate about building real-world apps with AI, automation, and security.
 
-**Website**: [Click](https://filespeak.net)  
-**LinkedIn**: [Click](https://www.linkedin.com/in/jasoncho529/)  
+**Website**: [link](https://filespeak.net)  
+**LinkedIn**: [link](https://www.linkedin.com/in/jasoncho529/)  
 **Email**: jcsungchan@gmail.com
 
 
