@@ -14,24 +14,40 @@ from datetime import datetime, timezone, timedelta
 import stripe
 import json
 
-# Load environment variables
-load_dotenv()
+# Load .env if in development mode
+ENV = os.environ.get("ENV", "development")
+
+if ENV  != "production":
+    from dotenv import load_dotenv
+    load_dotenv()
+    print("[INFO] Loaded .env for development environment.")
+else:
+    print("[INFO] Running in production environment.")
+    
+# Initialize Firebase Admin SDK
+try:
+    if ENV == "production":
+        firebase_json_str = os.environ.get("FIREBASE_CONFIG_JSON")
+        if not firebase_json_str:
+            raise RuntimeError("Missing FIREBASE_CONFIG_JSON in production environment.")
+
+        firebase_creds = json.loads(firebase_json_str)
+        cred = credentials.Certificate(firebase_creds)
+    else:
+        cred = credentials.Certificate("firebase-adminsdk.json")
+        
+    initialize_app(cred)
+    db = firestore.client()
+    print("[INFO] Firebase initialized.")
+except Exception as e:
+    raise RuntimeError(f"[ERROR] Failed to initialize Firebase: {e}")
+            
+# cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
 CORS(app, expose_headers=["Content-Disposition"])
-
-# Firebase Admin Init
-firebase_json = os.getenv("FIREBASE_CONFIG_JSON")
-if not firebase_json:
-    raise RuntimeError("FIREBASE_CONFIG_JSON environment variable is missing.")
-
-firebase_creds = json.loads(firebase_json)
-# cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-cred = credentials.Certificate(firebase_creds)
-initialize_app(cred)
-db = firestore.client()
 
 PLANS = {"free": 10000, "starter": 50000, "pro": 200000}
 
@@ -221,6 +237,7 @@ def translate_text(text, source_lang, target_lang):
 
 
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
 
 @app.route("/create-checkout-session", methods=["POST"])
 def create_checkout_session():
