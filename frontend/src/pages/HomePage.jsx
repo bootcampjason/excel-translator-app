@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from 'react';
-import * as XLSX from 'xlsx';
-import FileUpload from '../components/FileUpload';
-import LanguageSelector from '../components/LanguageSelector';
-import TranslateAllButton from '../components/TranslateAllButton';
-import SheetSelector from '../components/SheetSelector';
-import ClearAllButton from '../components/ClearAllButton';
-import AuthAppBar from '../components/AuthAppBar';
+import React, { useEffect, useState } from "react";
+import * as XLSX from "xlsx";
+import FileUpload from "../components/FileUpload";
+import LanguageSelector from "../components/LanguageSelector";
+import TranslateAllButton from "../components/TranslateAllButton";
+import SheetSelector from "../components/SheetSelector";
+import ClearAllButton from "../components/ClearAllButton";
+import AuthAppBar from "../components/AuthAppBar";
 import {
   Typography,
   Box,
@@ -14,37 +14,37 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
-  Button
-} from '@mui/material';
-import RestartAltIcon from '@mui/icons-material/RestartAlt';
-import ExpandLessIcon from '@mui/icons-material/ExpandLess';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import CheckCircleIcon from '@mui/icons-material/CheckCircle';
-import { auth } from '../firebase';
-import { onAuthStateChanged } from 'firebase/auth';
-import '../App.css';
+  Button,
+} from "@mui/material";
+import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { auth } from "../firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import "../App.css";
+import TranslationVisual from "../assets/images/excel_tranlate_visual.png";
 
 function HomePage() {
   const [user, setUser] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
-  const [sourceLang, setSourceLang] = useState('en');
-  const [targetLang, setTargetLang] = useState('ko');
+  const [sourceLang, setSourceLang] = useState("en");
+  const [targetLang, setTargetLang] = useState("ko");
   const [filePreviews, setFilePreviews] = useState({});
   const [expandedSheets, setExpandedSheets] = useState([]);
   const [previewVisible, setPreviewVisible] = useState(true);
   const [isTranslating, setIsTranslating] = useState(false);
   const [fileStatuses, setFileStatuses] = useState({});
   const [globalProgress, setGlobalProgress] = useState(0);
-  const [completionMessage, setCompletionMessage] = useState('');
+  const [completionMessage, setCompletionMessage] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
-  
 
   const handleFileReady = async (file) => {
     setUploadedFiles((prev) => [...prev, file]);
 
     const data = await file.arrayBuffer();
-    const workbook = XLSX.read(data, { type: 'array' });
+    const workbook = XLSX.read(data, { type: "array" });
     const previews = {};
 
     workbook.SheetNames.forEach((name) => {
@@ -56,7 +56,7 @@ function HomePage() {
 
     setFilePreviews((prev) => ({
       ...prev,
-      [file.name]: previews
+      [file.name]: previews,
     }));
   };
 
@@ -66,249 +66,387 @@ function HomePage() {
     setExpandedSheets([]);
     setFileStatuses({});
     setGlobalProgress(0);
-    setCompletionMessage('');
+    setCompletionMessage("");
     setIsCompleted(false);
-    setResetTrigger(prev => prev + 1); // increment to trigger reset in FileUpload
+    setResetTrigger((prev) => prev + 1); // increment to trigger reset in FileUpload
   };
 
-    useEffect(() => {
-      const unsub = onAuthStateChanged(auth, setUser);
-      return unsub;
-    }, []);
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, setUser);
+    return unsub;
+  }, []);
 
   return (
     <>
-      <div style={{ padding: 20, maxWidth: 800, margin: '0 auto' }}>
-        <Typography variant="h4" align="center" gutterBottom>
-          Excel Language Translator
-        </Typography>
-        <Typography variant="subtitle1" align="center" color="textSecondary" gutterBottom>
-          Upload and translate Excel files & download
-        </Typography>
+      <Box
+        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 2, pt: 4 }}
+      >
+        <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
+          <Typography variant="h4" align="center" fontWeight={600} gutterBottom>
+            Translate Excel Files
+          </Typography>
+          <Typography
+            variant="subtitle1"
+            align="center"
+            color="textSecondary"
+            gutterBottom
+          >
+            Upload and translate Excel files & download instantly
+          </Typography>
 
-        {(isTranslating || globalProgress === 100) && (
-          <div style={{ margin: '20px 0' }}>
-            <p>{isTranslating ? `Translating... (${globalProgress}%)` : `Completed (${globalProgress}%)`}</p>
-            <div style={{
-              height: 10,
-              width: '100%',
-              backgroundColor: '#eee',
-              borderRadius: 4,
-              overflow: 'hidden'
-            }}>
+          {(isTranslating || globalProgress === 100) && (
+            <div style={{ margin: "20px 0" }}>
+              <p>
+                {isTranslating
+                  ? `Translating... (${globalProgress}%)`
+                  : `Completed (${globalProgress}%)`}
+              </p>
               <div
-                className={isTranslating ? 'progress-fill-animated' : ''}
                 style={{
-                  width: `${globalProgress}%`,
-                  height: '100%',
-                  backgroundColor: '#1976d2',
-                  transition: 'width 0.3s ease',
+                  height: 10,
+                  width: "100%",
+                  backgroundColor: "#eee",
+                  borderRadius: 4,
+                  overflow: "hidden",
                 }}
-              />
-            </div>
-            {completionMessage && (
-              <p style={{ marginTop: 8, fontWeight: 'bold', color: 'green' }}>{completionMessage}</p>
-            )}
-          </div>
-        )}
-
-        <FileUpload onFileReady={handleFileReady} resetTrigger={resetTrigger} disabled={isTranslating || isCompleted} />
-
-        {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginTop: '10px',
-            padding: '0 10px',
-          }}>
-            <p style={{ margin: 0, fontWeight: 500 }}>
-              ✅ {uploadedFiles.length} file{uploadedFiles.length > 1 ? 's' : ''} uploaded
-            </p>
-            <ClearAllButton onClear={handleReset} />
-          </div>
-        )}
-
-        <LanguageSelector
-          sourceLang={sourceLang}
-          targetLang={targetLang}
-          onChange={(type, val) => type === 'source' ? setSourceLang(val) : setTargetLang(val)}
-        />
-
-        <TranslateAllButton
-          uploadedFiles={uploadedFiles}
-          sourceLang={sourceLang}
-          targetLang={targetLang}
-          isTranslating={isTranslating}
-          setIsTranslating={setIsTranslating}
-          fileStatuses={fileStatuses}
-          setFileStatuses={setFileStatuses}
-          setGlobalProgress={setGlobalProgress}
-          setCompletionMessage={setCompletionMessage}
-          isCompleted={isCompleted}
-          setIsCompleted={setIsCompleted}
-          user={user}
-        />
-
-        {Object.keys(filePreviews).length > 0 && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 8 }}>
-            <Button
-              variant="text"
-              size="medium"
-              onClick={() => setPreviewVisible(prev => !prev)}
-              endIcon={
-                previewVisible
-                  ? <ExpandLessIcon sx={{ fontSize: 20 }} />
-                  : <ExpandMoreIcon sx={{ fontSize: 20 }} />
-              }
-              sx={{
-                mt: 1,
-                alignSelf: 'flex-end',
-                fontWeight: 'bold',
-                color: '#1976d2',
-                textTransform: 'none',
-                '&:hover': {
-                  backgroundColor: '#e3f2fd'
-                }
-              }}
-            >
-              {previewVisible ? 'Hide Previews' : 'Show Previews'}
-            </Button>
-          </div>
-        )}
-
-        {isCompleted && (
-          <div className="start-over-container">
-            <Button
-              variant="contained"
-              color="success"
-              size="large"
-              onClick={handleReset}
-            >
-              <RestartAltIcon /> Start Over
-            </Button>
-          </div>
-        )}
-
-        {previewVisible &&
-          Object.entries(filePreviews).map(([fileName, sheets]) => {
-            const isTranslatingThisFile = fileStatuses[fileName] === 'Translating';
-            return (
-              <div key={fileName} style={{ marginTop: 24 }}>
-                <h3 style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>
-                    {fileName}
-                    {fileStatuses[fileName] && (
-                      <span style={{ marginLeft: 12, fontSize: 14, fontWeight: 400, color: '#888' }}>
-                        — {fileStatuses[fileName]}
-                      </span>
-                    )}
-                  </span>
-                  {isTranslatingThisFile && (
-                    <span style={{ display: 'flex', alignItems: 'center', color: '#1976d2', fontSize: 14 }}>
-                      <span
-                        className="spinner"
-                        style={{
-                          width: 16,
-                          height: 16,
-                          border: '2px solid #1976d2',
-                          borderTop: '2px solid transparent',
-                          borderRadius: '50%',
-                          marginRight: 8,
-                          animation: 'spin 1s linear infinite'
-                        }}
-                      />
-                      Translating... (This may take a couple of minutes)
-                    </span>
-                  )}
-                </h3>
-
-                <SheetSelector
-                  sheetNames={Object.keys(sheets)}
-                  sheetPreviews={sheets}
-                  expandedSheets={expandedSheets}
-                  onToggleExpand={(sheetName) =>
-                    setExpandedSheets((prev) =>
-                      prev.includes(sheetName)
-                        ? prev.filter((n) => n !== sheetName)
-                        : [...prev, sheetName]
-                    )
-                  }
-                  previewVisible={previewVisible}
+              >
+                <div
+                  className={isTranslating ? "progress-fill-animated" : ""}
+                  style={{
+                    width: `${globalProgress}%`,
+                    height: "100%",
+                    backgroundColor: "#1976d2",
+                    transition: "width 0.3s ease",
+                  }}
                 />
               </div>
-            );
-          })}
+              {completionMessage && (
+                <p style={{ marginTop: 8, fontWeight: "bold", color: "green" }}>
+                  {completionMessage}
+                </p>
+              )}
+            </div>
+          )}
 
-        {/* Benefits Section */}
-        <Box
-          sx={{
-            mt: 3,
-            mb: 4,
-            px: 2,
-            py: 2,
-            backgroundColor: '#f9f9f9',
-            borderRadius: 2,
-            boxShadow: 1,
-          }}
-        >
-          <Typography variant="h6" align="center" gutterBottom sx={{ fontWeight: 600 }}>
-            Why Use This App?
-          </Typography>
-          <List dense>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon sx={{ color: 'green' }} />
-              </ListItemIcon>
-              <ListItemText primary="Upload multiple Excel files at once" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon sx={{ color: 'green' }} />
-              </ListItemIcon>
-              <ListItemText primary="Preserves Excel formatting and styles" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon sx={{ color: 'green' }} />
-              </ListItemIcon>
-              <ListItemText primary="Supports both .xls and .xlsx formats" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon sx={{ color: 'green' }} />
-              </ListItemIcon>
-              <ListItemText primary="Fast and secure translation powered by GPT" />
-            </ListItem>
-            <ListItem>
-              <ListItemIcon>
-                <CheckCircleIcon sx={{ color: 'green' }} />
-              </ListItemIcon>
-              <ListItemText primary="Translated files automatically downloaded" />
-            </ListItem>
-          </List>
-        </Box>
+          <FileUpload
+            onFileReady={handleFileReady}
+            resetTrigger={resetTrigger}
+            disabled={isTranslating || isCompleted}
+          />
 
-        {/* Security & Privacy Notice */}
-        <Paper
+          {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                marginTop: "10px",
+                padding: "0 10px",
+              }}
+            >
+              <p style={{ margin: 0, fontWeight: 500 }}>
+                ✅ {uploadedFiles.length} file
+                {uploadedFiles.length > 1 ? "s" : ""} uploaded
+              </p>
+              <ClearAllButton onClear={handleReset} />
+            </div>
+          )}
+
+          <LanguageSelector
+            sourceLang={sourceLang}
+            targetLang={targetLang}
+            onChange={(type, val) =>
+              type === "source" ? setSourceLang(val) : setTargetLang(val)
+            }
+          />
+
+          <TranslateAllButton
+            uploadedFiles={uploadedFiles}
+            sourceLang={sourceLang}
+            targetLang={targetLang}
+            isTranslating={isTranslating}
+            setIsTranslating={setIsTranslating}
+            fileStatuses={fileStatuses}
+            setFileStatuses={setFileStatuses}
+            setGlobalProgress={setGlobalProgress}
+            setCompletionMessage={setCompletionMessage}
+            isCompleted={isCompleted}
+            setIsCompleted={setIsCompleted}
+            user={user}
+          />
+
+          {Object.keys(filePreviews).length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-end",
+                marginTop: 8,
+              }}
+            >
+              <Button
+                variant="text"
+                size="medium"
+                onClick={() => setPreviewVisible((prev) => !prev)}
+                endIcon={
+                  previewVisible ? (
+                    <ExpandLessIcon sx={{ fontSize: 20 }} />
+                  ) : (
+                    <ExpandMoreIcon sx={{ fontSize: 20 }} />
+                  )
+                }
+                sx={{
+                  mt: 1,
+                  alignSelf: "flex-end",
+                  fontWeight: "bold",
+                  color: "#1976d2",
+                  textTransform: "none",
+                  "&:hover": {
+                    backgroundColor: "#e3f2fd",
+                  },
+                }}
+              >
+                {previewVisible ? "Hide Previews" : "Show Previews"}
+              </Button>
+            </div>
+          )}
+
+          {isCompleted && (
+            <div className="start-over-container">
+              <Button
+                variant="contained"
+                color="success"
+                size="large"
+                onClick={handleReset}
+              >
+                <RestartAltIcon /> Start Over
+              </Button>
+            </div>
+          )}
+
+          {/* 📄 Sheet Preview Section */}
+          {previewVisible &&
+            Object.entries(filePreviews).map(([fileName, sheets]) => {
+              const isTranslatingThisFile =
+                fileStatuses[fileName] === "Translating";
+              const statusColor =
+                fileStatuses[fileName] === "Done"
+                  ? "success.main"
+                  : fileStatuses[fileName] === "Error"
+                  ? "error.main"
+                  : "warning.main";
+
+              return (
+                <Box key={fileName} sx={{ mt: 6, mb: 3 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mb: 1,
+                    }}
+                  >
+                    <Typography variant="h6" fontWeight={600}>
+                      📄 {fileName}
+                    </Typography>
+                    {fileStatuses[fileName] && (
+                      <Box
+                        sx={{
+                          fontSize: 14,
+                          fontWeight: 500,
+                          px: 2,
+                          py: 0.5,
+                          borderRadius: 1,
+                          backgroundColor: statusColor,
+                          color: "#fff",
+                        }}
+                      >
+                        {fileStatuses[fileName]}
+                      </Box>
+                    )}
+                  </Box>
+
+                  {isTranslatingThisFile && (
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        mb: 2,
+                        color: "#1976d2",
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          width: 16,
+                          height: 16,
+                          border: "2px solid #1976d2",
+                          borderTop: "2px solid transparent",
+                          borderRadius: "50%",
+                          mr: 1,
+                          animation: "spin 1s linear infinite",
+                        }}
+                      />
+                      <Typography variant="body2">
+                        Translating... (This may take a couple of minutes)
+                      </Typography>
+                    </Box>
+                  )}
+
+                  <SheetSelector
+                    sheetNames={Object.keys(sheets)}
+                    sheetPreviews={sheets}
+                    expandedSheets={expandedSheets}
+                    onToggleExpand={(sheetName) =>
+                      setExpandedSheets((prev) =>
+                        prev.includes(sheetName)
+                          ? prev.filter((n) => n !== sheetName)
+                          : [...prev, sheetName]
+                      )
+                    }
+                  />
+                </Box>
+              );
+            })}
+          {/* How It Works Section */}
+          <Box
+            sx={{
+              mt: 10,
+              display: "flex",
+              justifyContent: "center",
+              // px: 2,
+            }}
+          >
+            <Box
+              component="img"
+              src={TranslationVisual} // replace with actual path or import
+              alt="Excel translation visual from French to English"
+              sx={{
+                maxWidth: "100%",
+                height: "auto",
+                borderRadius: 2,
+                boxShadow: 3,
+              }}
+            />
+          </Box>
+
+          {/* Benefits Section */}
+          <Box
+            sx={{
+              mt: 8,
+              px: 2,
+              py: 5,
+              background: "linear-gradient(135deg, #e8f5e9 0%, #ffffff 100%)",
+              borderRadius: 3,
+              textAlign: "center",
+              border: "1px solid #c8e6c9",
+            }}
+          >
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              gutterBottom
+              color="#1b5e20"
+            >
+              Everything You Need to Translate Excel
+            </Typography>
+            <Typography variant="body1" color="textSecondary" mb={3}>
+              Intelligent Excel translation, built for speed, accuracy, and
+              simplicity.
+            </Typography>
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                gap: 3,
+                maxWidth: 700,
+                mx: "auto",
+              }}
+            >
+              {[
+                {
+                  icon: "📂",
+                  text: "Batch upload multiple Excel files effortlessly.",
+                },
+                {
+                  icon: "🎨",
+                  text: "Keeps all your styles, layout, and structure intact.",
+                },
+                {
+                  icon: "⚡",
+                  text: "Supercharged by GPT-4o for ultra-accurate results.",
+                },
+                {
+                  icon: "💾",
+                  text: "Translated files download automatically in one step.",
+                },
+                {
+                  icon: "🔐",
+                  text: "Your data never leaves memory — privacy-first design.",
+                },
+              ].map((item, index) => (
+                <Paper
+                  key={index}
+                  elevation={0}
+                  sx={{
+                    px: 3,
+                    py: 2,
+                    backgroundColor: "#ffffff",
+                    borderRadius: 2,
+                    border: "1px solid #a5d6a7",
+                    textAlign: "left",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 2,
+                  }}
+                >
+                  <Typography fontSize={24}>{item.icon}</Typography>
+                  <Typography fontWeight={500}>{item.text}</Typography>
+                </Paper>
+              ))}
+            </Box>
+          </Box>
+
+          {/* Security & Privacy Notice */}
+          {/* <Paper
           elevation={2}
           sx={{
             mt: 6,
             p: 3,
-            backgroundColor: '#f9f9f9',
-            borderLeft: '5px solid #d32f2f',
+            backgroundColor: "#f9f9f9",
+            borderLeft: "5px solid #d32f2f",
           }}
         >
           <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
             🔒 Your Data is Safe
           </Typography>
           <Typography variant="body2" color="textSecondary">
-            We take your privacy seriously. All files you upload and any text content processed through this service are{' '}
-            <strong>never stored, saved, or logged</strong>. Translations are handled securely and processed in-memory only.
-            Your data is not used for training or shared with any third party.
+            We take your privacy seriously. All files you upload and any text
+            content processed through this service are{" "}
+            <strong>never stored, saved, or logged</strong>. Translations are
+            handled securely and processed in-memory only. Your data is not used
+            for training or shared with any third party.
           </Typography>
-        </Paper>
-      </div>
+        </Paper> */}
+        </div>
+        <footer
+          style={{
+            marginTop: "80px",
+            padding: "32px 24px",
+            backgroundColor: "#f5f5f5",
+            borderTop: "1px solid #ddd",
+            textAlign: "center",
+          }}
+        >
+          <Typography
+            variant="body2"
+            color="textSecondary"
+            maxWidth={700}
+            mx="auto"
+          >
+            🔒 FileSpeak never stores or logs your data. All translations are
+            processed in-memory and permanently discarded after download.
+          </Typography>
+        </footer>
+      </Box>
     </>
   );
 }
