@@ -22,7 +22,13 @@ BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000")
 STRIPE_STARTER_PRICE_ID = os.environ.get("STRIPE_STARTER_PRICE_ID")
 STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
 
+allowed_origins = [
+    "https://filespeak.net",
+    "https://www.filespeak.net"
+]
+
 if ENV  != "production":
+    allowed_origins.append("http://localhost:3000")
     print("[INFO] Loaded .env for development environment.")
 else:
     print("[INFO] Running in production environment.")
@@ -45,12 +51,11 @@ try:
 except Exception as e:
     raise RuntimeError(f"[ERROR] Failed to initialize Firebase: {e}")
             
-# cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 app = Flask(__name__)
-CORS(app, expose_headers=["Content-Disposition"])
+CORS(app, origins=allowed_origins, supports_credentials=True)
 
 PLANS = {"free": 10000, "starter": 50000, "pro": 200000}
 
