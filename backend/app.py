@@ -13,13 +13,16 @@ import time
 from datetime import datetime, timezone, timedelta
 import stripe
 import json
+from dotenv import load_dotenv
+load_dotenv()
 
 # Load .env if in development mode
 ENV = os.environ.get("ENV", "development")
+BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000")
+STRIPE_STARTER_PRICE_ID = os.environ.get("STRIPE_STARTER_PRICE_ID")
+STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
 
 if ENV  != "production":
-    from dotenv import load_dotenv
-    load_dotenv()
     print("[INFO] Loaded .env for development environment.")
 else:
     print("[INFO] Running in production environment.")
@@ -34,7 +37,7 @@ try:
         firebase_creds = json.loads(firebase_json_str)
         cred = credentials.Certificate(firebase_creds)
     else:
-        cred = credentials.Certificate("firebase-adminsdk.json")
+        cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
         
     initialize_app(cred)
     db = firestore.client()
@@ -244,17 +247,35 @@ def create_checkout_session():
     try:
         data = request.get_json()
         uid = data.get("uid")
-        price_id = data.get("priceId")  # Retrieved from Stripe Dashboard
-        if not uid or not price_id:
-            return jsonify({"error": "Missing uid or priceId"}), 400
+        plan = data.get("plan").lower()
+        print('plan:', plan)
+        
+        if not uid or not plan:
+            return jsonify({"error": "Missing uid or plan"}), 400
+        
+        price_id = None
+        if plan == "starter":
+            price_id = STRIPE_STARTER_PRICE_ID
+            print('price_id', price_id)
+        elif plan == "pro":
+            price_id = STRIPE_PRO_PRICE_ID
+        else:
+            return jsonify({"error": "Invalid plan selected."}), 400
+
+        print('STRIPE_PRO_PRICE_ID', STRIPE_PRO_PRICE_ID)
+
+        if not price_id:
+            raise RuntimeError(f"[ERROR] No price ID set for plan: {plan}")
+        
+        print('price_id', price_id)
 
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
-            mode="subscription",
+            mode="payment",
             line_items=[{"price": price_id, "quantity": 1}],
-            success_url="http://localhost:3000/payment-success",
-            cancel_url="http://localhost:3000/payment-cancel",
-            metadata={"uid": uid},
+            success_url=f"{BASE_URL}/payment-success",
+            cancel_url=f"{BASE_URL}/payment-cancel",
+            metadata={"uid": uid, "plan": plan},
         )
 
         return jsonify({"url": session.url})
@@ -269,6 +290,39 @@ def create_checkout_session():
             jsonify({"error": "An unexpected error occurred. Please try again."}),
             500,
         )
+        
+@app.route("/stripe-webhook", methods=["POST"])
+def stripe_webhook():
+
+    payload = request.data
+    sig_header = request.headers.get("Stripe-Signature")
+    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
+
+    try:
+        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
+    except stripe.error.SignatureVerificationError:
+        print("[WEBHOOK ERROR] Signature verification failed.")
+        return jsonify({"error": "Invalid signature"}), 400
+    except Exception as e:
+        print(f"[WEBHOOK ERROR] {e}")
+        return jsonify({"error": "Webhook error"}), 400
+
+    if event["type"] == "checkout.session.completed":
+        session = event["data"]["object"]
+        uid = session["metadata"].get("uid")
+        plan = session["metadata"].get("plan")
+        print(f"[WEBHOOK] Payment success for uid={uid}, plan={plan}")
+
+        # Update Firestore user document
+        if uid and plan:
+            db.collection("users").document(uid).update({
+                "plan": plan,
+                "charUsedThisMonth": 0,
+                "lastReset": firestore.SERVER_TIMESTAMP,
+            })
+
+    return jsonify({"received": True}), 200
+
 
 
 @app.route("/ping", methods=["GET"])

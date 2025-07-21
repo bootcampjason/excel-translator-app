@@ -1,5 +1,5 @@
 # 🌍 Excel Translator App    
-**FileSpeak** translates spreadsheets in one step
+**FileSpeak** translates spreadsheets in one step.  
 Upload & download your translated excel file with its layout, merged cells, or embedded objects preserved.<br />
 👉 [Try the live version](https://filespeak.net) (SSL Certificate)
 <br />
