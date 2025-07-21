@@ -4,7 +4,6 @@ const App = (props) => {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    console.log('h')
     setTimeout(() => {
       setVisible(true);
     }, 4000);

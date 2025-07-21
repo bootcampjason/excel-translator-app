@@ -5,21 +5,11 @@ import LanguageSelector from "../components/LanguageSelector";
 import TranslateAllButton from "../components/TranslateAllButton";
 import SheetSelector from "../components/SheetSelector";
 import ClearAllButton from "../components/ClearAllButton";
-import AuthAppBar from "../components/AuthAppBar";
-import {
-  Typography,
-  Box,
-  Paper,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText,
-  Button,
-} from "@mui/material";
-import RestartAltIcon from "@mui/icons-material/RestartAlt";
+import RestartButton from "../components/RestartButton";
+import { Typography, Box, Paper, Button, Snackbar, Alert } from "@mui/material";
+
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import { auth } from "../firebase";
 import { onAuthStateChanged } from "firebase/auth";
 import "../App.css";
@@ -39,6 +29,7 @@ function HomePage() {
   const [completionMessage, setCompletionMessage] = useState("");
   const [isCompleted, setIsCompleted] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
+  const [showPreviewMessage, setShowPreviewMessage] = useState(false);
 
   const handleFileReady = async (file) => {
     setUploadedFiles((prev) => [...prev, file]);
@@ -58,6 +49,7 @@ function HomePage() {
       ...prev,
       [file.name]: previews,
     }));
+    setShowPreviewMessage(true);
   };
 
   const handleReset = () => {
@@ -79,53 +71,56 @@ function HomePage() {
   return (
     <>
       <Box
-        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 2, pt: 4 }}
+        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 2, pt: 2 }}
       >
         <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
-          <Typography variant="h4" align="center" fontWeight={600} gutterBottom>
-            Translate Excel Files
-          </Typography>
-          <Typography
-            variant="subtitle1"
-            align="center"
-            color="textSecondary"
-            gutterBottom
-          >
-            Upload and translate Excel files & download instantly
-          </Typography>
+          <Box textAlign="center" mb={3}>
+            <Typography variant="h4" fontWeight={700} gutterBottom>
+              Translate Excel Files
+            </Typography>
+            <Typography variant="subtitle1" color="text.secondary">
+              Upload and translate Excel files — keep styles, layout, and
+              structure intact.
+            </Typography>
+          </Box>
 
           {(isTranslating || globalProgress === 100) && (
-            <div style={{ margin: "20px 0" }}>
-              <p>
+            <Box mb={3}>
+              <Typography fontWeight={500} mb={1}>
                 {isTranslating
                   ? `Translating... (${globalProgress}%)`
                   : `Completed (${globalProgress}%)`}
-              </p>
-              <div
-                style={{
+              </Typography>
+              <Box
+                sx={{
                   height: 10,
                   width: "100%",
-                  backgroundColor: "#eee",
+                  backgroundColor: "#e0e0e0",
                   borderRadius: 4,
                   overflow: "hidden",
                 }}
               >
-                <div
+                <Box
                   className={isTranslating ? "progress-fill-animated" : ""}
-                  style={{
+                  sx={{
                     width: `${globalProgress}%`,
                     height: "100%",
                     backgroundColor: "#1976d2",
                     transition: "width 0.3s ease",
                   }}
                 />
-              </div>
+              </Box>
               {completionMessage && (
-                <p style={{ marginTop: 8, fontWeight: "bold", color: "green" }}>
+                <Typography
+                  mt={1}
+                  fontWeight={600}
+                  color="success.main"
+                  fontSize="0.95rem"
+                >
                   {completionMessage}
-                </p>
+                </Typography>
               )}
-            </div>
+            </Box>
           )}
 
           <FileUpload
@@ -135,45 +130,54 @@ function HomePage() {
           />
 
           {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                marginTop: "10px",
-                padding: "0 10px",
-              }}
+            <Box
+              mt={2}
+              display="flex"
+              justifyContent="space-between"
+              alignItems="center"
             >
-              <p style={{ margin: 0, fontWeight: 500 }}>
+              <Typography fontWeight={500}>
                 ✅ {uploadedFiles.length} file
                 {uploadedFiles.length > 1 ? "s" : ""} uploaded
-              </p>
+              </Typography>
               <ClearAllButton onClear={handleReset} />
-            </div>
+            </Box>
           )}
 
-          <LanguageSelector
-            sourceLang={sourceLang}
-            targetLang={targetLang}
-            onChange={(type, val) =>
-              type === "source" ? setSourceLang(val) : setTargetLang(val)
-            }
-          />
+          <Box mt={3}>
+            <LanguageSelector
+              sourceLang={sourceLang}
+              targetLang={targetLang}
+              onChange={(type, val) =>
+                type === "source" ? setSourceLang(val) : setTargetLang(val)
+              }
+            />
+          </Box>
 
-          <TranslateAllButton
-            uploadedFiles={uploadedFiles}
-            sourceLang={sourceLang}
-            targetLang={targetLang}
-            isTranslating={isTranslating}
-            setIsTranslating={setIsTranslating}
-            fileStatuses={fileStatuses}
-            setFileStatuses={setFileStatuses}
-            setGlobalProgress={setGlobalProgress}
-            setCompletionMessage={setCompletionMessage}
-            isCompleted={isCompleted}
-            setIsCompleted={setIsCompleted}
-            user={user}
-          />
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            flexWrap="wrap"
+            gap={2}
+          >
+            <TranslateAllButton
+              uploadedFiles={uploadedFiles}
+              sourceLang={sourceLang}
+              targetLang={targetLang}
+              isTranslating={isTranslating}
+              setIsTranslating={setIsTranslating}
+              fileStatuses={fileStatuses}
+              setFileStatuses={setFileStatuses}
+              setGlobalProgress={setGlobalProgress}
+              setCompletionMessage={setCompletionMessage}
+              isCompleted={isCompleted}
+              setIsCompleted={setIsCompleted}
+              user={user}
+            />
+
+            {isCompleted && <RestartButton handleReset={handleReset} />}
+          </Box>
 
           {Object.keys(filePreviews).length > 0 && (
             <div
@@ -207,19 +211,29 @@ function HomePage() {
               >
                 {previewVisible ? "Hide Previews" : "Show Previews"}
               </Button>
-            </div>
-          )}
-
-          {isCompleted && (
-            <div className="start-over-container">
-              <Button
-                variant="contained"
-                color="success"
-                size="large"
-                onClick={handleReset}
+              <Snackbar
+                open={showPreviewMessage}
+                autoHideDuration={4000}
+                onClose={() => setShowPreviewMessage(false)}
+                anchorOrigin={{ vertical: "bottom", horizontal: "center" }}
               >
-                <RestartAltIcon /> Start Over
-              </Button>
+                <Alert
+                  severity="info"
+                  sx={{
+                    width: "100%",
+                    fontWeight: 500,
+                    fontSize: "0.95rem",
+                    background: "linear-gradient(to right, #e8f5e9, #ffffff)", // soft green background
+                    color: "#1b5e20", // dark readable green text
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 1,
+                  }}
+                  onClose={() => setShowPreviewMessage(false)}
+                >
+                  Scroll down to see the sheet preview.
+                </Alert>
+              </Snackbar>
             </div>
           )}
 
