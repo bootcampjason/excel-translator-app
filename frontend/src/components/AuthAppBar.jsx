@@ -47,10 +47,8 @@ function AuthAppBar() {
       const userDoc = await getDoc(doc(db, "users", uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
-        const plan = data.plan || "free";
-        const limit = PLANS[plan] || 10000;
-        setCharUsed(data.charUsedThisMonth || 0);
-        setCharLimit(limit);
+        setCharUsed(data.charUsed || 0);
+        setCharLimit(data.charLimit || 10000);
       }
     } catch (error) {
       console.error("[ERROR] Failed to fetch user usage:", error);
@@ -87,6 +85,10 @@ function AuthAppBar() {
     });
     return () => unsub();
   }, []);
+
+  useEffect(() => {
+    console.log("[INFO] Updated usage:", { charUsed, charLimit });
+  }, [charUsed, charLimit]);
 
   return (
     <>
@@ -127,8 +129,8 @@ function AuthAppBar() {
                 title={
                   <Box sx={{ p: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {charUsed.toLocaleString()} /{" "}
-                      {charLimit.toLocaleString()} characters used
+                      {charUsed.toLocaleString()} / {charLimit.toLocaleString()}{" "}
+                      characters used
                     </Typography>
                   </Box>
                 }
@@ -155,11 +157,7 @@ function AuthAppBar() {
               >
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   {user.email}{" "}
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="#d5dbdb"
-                  >
+                  <Typography component="span" variant="body2" color="#d5dbdb">
                     ({charUsed.toLocaleString()} / {charLimit.toLocaleString()})
                   </Typography>
                 </Typography>
@@ -169,10 +167,10 @@ function AuthAppBar() {
                 variant="contained"
                 size="small"
                 color="secondary"
-                onClick={() => navigate('/upgrade')}
+                onClick={() => navigate("/upgrade")}
                 sx={{
                   fontWeight: 600,
-                  textTransform: 'none',
+                  textTransform: "none",
                   borderRadius: 20,
                 }}
               >

@@ -76,33 +76,13 @@ def get_user_data(uid):
         print(f"[DEBUG] User uid not found. Creating default user record.")
         user_data = {
             "plan": "free",
-            "charUsedThisMonth": 0,
-            "lastReset": firestore.SERVER_TIMESTAMP,
+            "charUsed": 0,
+            "charLimit": PLANS["free"],
         }
         user_ref.set(user_data)
         return user_data
 
-    user_data = user_doc.to_dict()
-    last_reset = user_data.get("lastReset")
-
-    if should_reset_monthly_usage(last_reset):
-        print(f"[DEBUG] Resetting monthly usage for user")
-        user_data["charUsedThisMonth"] = 0
-        user_data["lastReset"] = firestore.SERVER_TIMESTAMP
-        user_ref.update(
-            {"charUsedThisMonth": 0, "lastReset": firestore.SERVER_TIMESTAMP}
-        )
-
-    return user_data
-
-
-def should_reset_monthly_usage(last_reset):
-    """Return True if last_reset was more than 30 days ago or missing."""
-    if not last_reset:
-        return True
-    if isinstance(last_reset, datetime):
-        last_reset = last_reset.replace(tzinfo=timezone.utc)
-    return (datetime.now(timezone.utc) - last_reset) > timedelta(days=30)
+    return user_doc.to_dict()
 
 
 @app.route("/usage", methods=["GET"])
@@ -112,9 +92,9 @@ def get_usage():
     if error_response:
         return error_response, status
 
-    plan = user_data.get("plan", "free")
-    char_used = user_data.get("charUsedThisMonth", 0)
-    char_limit = PLANS.get(plan, 10000)
+    plan = user_data.get("plan", "free").lower()
+    char_used = user_data.get("charUsed", 0)
+    char_limit = user_data.get("charLimit", PLANS[plan])
 
     return jsonify({"plan": plan, "charUsed": char_used, "charLimit": char_limit})
 
@@ -129,11 +109,11 @@ def translate_excel():
     source_lang = request.form.get("sourceLang", "auto")
     target_lang = request.form.get("targetLang", "en")
 
-    # Get user data (with reset logic)
+    # Get user data
     user_data = get_user_data(uid)
     plan = user_data.get("plan", "free")
-    char_limit = PLANS.get(plan, 10000)
-    char_used = user_data.get("charUsedThisMonth", 0)
+    char_limit = user_data.get("charLimit", PLANS[plan])
+    char_used = user_data.get("charUsed", 0)
 
     # Estimate new characters
     new_chars = estimate_chars_in_file(uploaded_file)
@@ -175,9 +155,7 @@ def translate_excel():
         output.seek(0)
 
         # Update usage
-        db.collection("users").document(uid).update(
-            {"charUsedThisMonth": char_used + new_chars}
-        )
+        db.collection("users").document(uid).update({"charUsed": char_used + new_chars})
 
         duration = time.time() - start_time  # ⏱ End timer
         print(f"[DEBUG] Translation completed in {duration:.2f} seconds")
@@ -261,7 +239,6 @@ def create_checkout_session():
         price_id = None
         if plan == "starter":
             price_id = STRIPE_STARTER_PRICE_ID
-            print('price_id', price_id)
         elif plan == "pro":
             price_id = STRIPE_PRO_PRICE_ID
         else:
@@ -272,8 +249,6 @@ def create_checkout_session():
         if not price_id:
             raise RuntimeError(f"[ERROR] No price ID set for plan: {plan}")
         
-        print('price_id', price_id)
-
         session = stripe.checkout.Session.create(
             payment_method_types=["card"],
             mode="payment",
@@ -281,6 +256,7 @@ def create_checkout_session():
             success_url=f"{BASE_URL}/payment-success",
             cancel_url=f"{BASE_URL}/payment-cancel",
             metadata={"uid": uid, "plan": plan},
+            locale="auto",  
         )
 
         return jsonify({"url": session.url})
@@ -296,7 +272,7 @@ def create_checkout_session():
             500,
         )
         
-@app.route("/stripe-webhook", methods=["POST"])
+@app.route("/stripe/webhook", methods=["POST"])
 def stripe_webhook():
 
     payload = request.data
@@ -315,16 +291,19 @@ def stripe_webhook():
     if event["type"] == "checkout.session.completed":
         session = event["data"]["object"]
         uid = session["metadata"].get("uid")
-        plan = session["metadata"].get("plan")
+        plan = session["metadata"].get("plan").lower()
         print(f"[WEBHOOK] Payment success for uid={uid}, plan={plan}")
 
         # Update Firestore user document
         if uid and plan:
-            db.collection("users").document(uid).update({
+            user_ref = db.collection("users").document(uid)
+            user_data = user_ref.get().to_dict() or {}
+            bonus = PLANS.get(plan, 0)
+            new_limit = user_data.get("charLimit", 10000) + bonus
+            user_ref.set({
                 "plan": plan,
-                "charUsedThisMonth": 0,
-                "lastReset": firestore.SERVER_TIMESTAMP,
-            })
+                "charLimit": new_limit
+            }, merge=True)
 
     return jsonify({"received": True}), 200
 

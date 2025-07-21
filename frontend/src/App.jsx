@@ -8,7 +8,13 @@ import UpgradePage from "./pages/UpgradePage";
 import PaymentSuccess from "./pages/PaymentSuccess";
 import PaymentCancel from "./pages/PaymentCancel";
 
+import { auto, db } from "./firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { doc, getDoc } from "firebase/firestore";
+import { UserContext } from "./context/UserContext";
+
 function App() {
+  
   return (
     <>
       <AuthAppBar /> {/* Show on every page */}
