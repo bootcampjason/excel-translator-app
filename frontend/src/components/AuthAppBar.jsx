@@ -1,5 +1,5 @@
 // src/components/AuthAppBar.jsx
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -15,21 +15,17 @@ import {
   CircularProgress,
   Tooltip,
 } from "@mui/material";
-import { auth } from "../firebase";
+import { auth, db } from "../firebase";
 import { onAuthStateChanged, signOut } from "firebase/auth";
 import FileSpeakLogoWhite from "../assets/images/FileSpeakLogo_white.png";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
+import { UserContext } from "../context/UserContext";
 
-const PLANS = {
-  free: 10000,
-  starter: 50000,
-  pro: 200000,
-};
 
 function AuthAppBar() {
-  const [user, setUser] = useState(null);
+  const { user, usage, setUsage } = useContext(UserContext);
+  const { charUsed, charLimit } = usage || {};
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState({
@@ -37,23 +33,30 @@ function AuthAppBar() {
     message: "",
     severity: "success",
   });
-  const [charUsed, setCharUsed] = useState(0);
-  const [charLimit, setCharLimit] = useState(10000);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const fetchUsage = async (uid) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        setCharUsed(data.charUsed || 0);
-        setCharLimit(data.charLimit || 10000);
+  useEffect(() => {
+    const fetchUsage = async () => {
+      if (!user?.uid) return;
+      try {
+        const userDoc = await getDoc(doc(db, "users", user.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setUsage({
+            charUsed: data.charUsed || 0,
+            charLimit: data.charLimit || 10000,
+          });
+        }
+      } catch (err) {
+        console.error("[ERROR] Failed to fetch usage:", err)
       }
-    } catch (error) {
-      console.error("[ERROR] Failed to fetch user usage:", error);
-    }
-  };
+    };
+
+    fetchUsage();
+  }, [location.pathname, user?.uid]);
+
 
   const handleLogout = async () => {
     setIsSigningOut(true);
@@ -76,19 +79,6 @@ function AuthAppBar() {
     }
   };
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser?.uid) {
-        fetchUsage(currentUser.uid);
-      }
-    });
-    return () => unsub();
-  }, []);
-
-  useEffect(() => {
-    console.log("[INFO] Updated usage:", { charUsed, charLimit });
-  }, [charUsed, charLimit]);
 
   return (
     <>

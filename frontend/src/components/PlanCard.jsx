@@ -1,5 +1,5 @@
 // src/components/PlanCard.jsx
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,17 +8,21 @@ import {
   Box,
   Divider,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import { UserContext } from "../context/UserContext";
 
 function PlanCard({ plan }) {
-  const { user } = useContext(UserContext);
+  const { user, usage, setUsage } = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
     if (!user) {
       alert("Please sign in first.");
       return;
     }
+
+    setLoading(true);
 
     try {
       const response = await fetch(
@@ -37,6 +41,7 @@ function PlanCard({ plan }) {
       );
 
       const data = await response.json();
+
       if (data.url) {
         window.location.href = data.url; // Redirect to Stripe Checkout
       } else {
@@ -44,6 +49,8 @@ function PlanCard({ plan }) {
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -106,7 +113,14 @@ function PlanCard({ plan }) {
           onClick={handleUpgrade}
           sx={{ mt: 2, borderRadius: 2 }}
         >
-          Buy Now
+          {loading ? (
+            <>
+              <CircularProgress color="white" size={18} sx={{ mr: 1 }} />
+              Redirecting...
+            </>
+          ) : (
+            "Buy Now"
+          )}
         </Button>
       ) : (
         <Button

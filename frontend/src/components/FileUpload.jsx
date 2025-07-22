@@ -1,8 +1,9 @@
 import React, { useCallback, useRef, useState, useEffect } from "react";
 import { useDropzone } from "react-dropzone";
 import { Typography, Paper } from "@mui/material";
+import { estimateChars } from "../helpers/estimateChars";
 
-function FileUpload({ onFileReady, resetTrigger, disabled }) {
+function FileUpload({ onFileReady, resetTrigger, disabled, setTotalChars }) {
   const [fileName, setFileName] = useState("");
 
   const onDrop = useCallback(
@@ -17,7 +18,9 @@ function FileUpload({ onFileReady, resetTrigger, disabled }) {
           alert(`❌ ${file.name} is not a valid Excel file`);
           continue;
         }
-
+        console.log('file added!')
+        const numOfChars = await estimateChars(file)
+        setTotalChars(preChar => preChar + numOfChars)
         setFileName(file.name);
         onFileReady(file); // Call your existing logic for each file
       }
@@ -34,6 +37,7 @@ function FileUpload({ onFileReady, resetTrigger, disabled }) {
 
   useEffect(() => {
     setFileName("");
+    setTotalChars(0);
   }, [resetTrigger]);
 
 

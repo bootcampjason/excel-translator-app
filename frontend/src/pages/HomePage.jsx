@@ -30,6 +30,7 @@ function HomePage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [showPreviewMessage, setShowPreviewMessage] = useState(false);
+  const [totalChars, setTotalChars] = useState(0);
 
   const handleFileReady = async (file) => {
     setUploadedFiles((prev) => [...prev, file]);
@@ -71,9 +72,9 @@ function HomePage() {
   return (
     <>
       <Box
-        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 2, pt: 2 }}
+        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 0, pt: 2 }}
       >
-        <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ padding: 20, maxWidth: 720, margin: "0 auto" }}>
           <Box textAlign="center" mb={3}>
             <Typography variant="h4" fontWeight={700} gutterBottom>
               Translate Excel Files
@@ -127,6 +128,7 @@ function HomePage() {
             onFileReady={handleFileReady}
             resetTrigger={resetTrigger}
             disabled={isTranslating || isCompleted}
+            setTotalChars={setTotalChars}
           />
 
           {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
@@ -139,6 +141,19 @@ function HomePage() {
               <Typography fontWeight={500}>
                 ✅ {uploadedFiles.length} file
                 {uploadedFiles.length > 1 ? "s" : ""} uploaded
+                {totalChars > 0 && (
+                  <Box
+                    component="span"
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: "bold",
+                      ml: 1,
+                      display: "inline-block",
+                    }}
+                  >
+                    — {totalChars.toLocaleString()} characters
+                  </Box>
+                )}
               </Typography>
               <ClearAllButton onClear={handleReset} />
             </Box>
@@ -174,6 +189,7 @@ function HomePage() {
               isCompleted={isCompleted}
               setIsCompleted={setIsCompleted}
               user={user}
+              totalChars={totalChars}
             />
 
             {isCompleted && <RestartButton handleReset={handleReset} />}
