@@ -12,6 +12,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import "../App.css";
 import TranslationVisual from "../assets/images/excel_tranlate_visual.png";
 import { UserContext } from "../context/UserContext";
+import EmailOutlinedIcon from "@mui/icons-material/EmailOutlined";
 
 function HomePage() {
   const [uploadedFiles, setUploadedFiles] = useState([]);
@@ -424,29 +425,8 @@ function HomePage() {
               ))}
             </Box>
           </Box>
-
-          {/* Security & Privacy Notice */}
-          {/* <Paper
-          elevation={2}
-          sx={{
-            mt: 6,
-            p: 3,
-            backgroundColor: "#f9f9f9",
-            borderLeft: "5px solid #d32f2f",
-          }}
-        >
-          <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
-            🔒 Your Data is Safe
-          </Typography>
-          <Typography variant="body2" color="textSecondary">
-            We take your privacy seriously. All files you upload and any text
-            content processed through this service are{" "}
-            <strong>never stored, saved, or logged</strong>. Translations are
-            handled securely and processed in-memory only. Your data is not used
-            for training or shared with any third party.
-          </Typography>
-        </Paper> */}
         </div>
+        {/* Security & Privacy Notice */}
         <footer
           style={{
             marginTop: "80px",
@@ -465,6 +445,18 @@ function HomePage() {
             🔒 FileSpeak never stores or logs your data. All translations are
             processed in-memory and permanently discarded after download.
           </Typography>
+          <Box
+            mt={2}
+            display="flex"
+            justifyContent="center"
+            alignItems="center"
+            gap={1}
+          >
+            <EmailOutlinedIcon fontSize="small" />
+            <Typography variant="body2" color="textSecondary">
+              <a href="mailto:jcsungchan@gmail.com">jcsungchan@gmail.com</a>
+            </Typography>
+          </Box>
         </footer>
       </Box>
     </>
