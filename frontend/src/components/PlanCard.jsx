@@ -1,5 +1,5 @@
 // src/components/PlanCard.jsx
-import React, { useContext } from "react";
+import React, { useContext, useState } from "react";
 import {
   Card,
   CardContent,
@@ -8,17 +8,21 @@ import {
   Box,
   Divider,
   Chip,
+  CircularProgress,
 } from "@mui/material";
 import { UserContext } from "../context/UserContext";
 
-function PlanCard({ plan, isActive }) {
-  const { user } = useContext(UserContext);
+function PlanCard({ plan }) {
+  const { user, usage, setUsage } = useContext(UserContext);
+  const [loading, setLoading] = useState(false);
 
   const handleUpgrade = async () => {
     if (!user) {
       alert("Please sign in first.");
       return;
     }
+
+    setLoading(true);
 
     try {
       const response = await fetch(
@@ -31,39 +35,40 @@ function PlanCard({ plan, isActive }) {
           },
           body: JSON.stringify({
             uid: user.uid,
-            plan: plan.name,
+            plan: plan.name.toLowerCase(),
           }),
         }
       );
 
       const data = await response.json();
+
       if (data.url) {
-        window.location.href = data.url;
+        window.location.href = data.url; // Redirect to Stripe Checkout
       } else {
         alert("Something went wrong.");
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      setLoading(false);
     }
   };
 
   const isFree = plan.name.toLowerCase() === "free";
+  const isPro = plan.name.toLowerCase() === "pro";
 
   return (
     <Card
-      elevation={isActive ? 6 : 4}
+      elevation={4}
       sx={{
         minWidth: 275,
         maxWidth: 320,
         borderRadius: 3,
         p: 2,
-        background: isActive
+        background: !isFree
           ? "linear-gradient(135deg, #dcedc8 0%, #ffffff 100%)"
-          : isFree
-          ? "linear-gradient(135deg, #f1f8e9 0%, #ffffff 100%)"
           : "linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%)",
-        border: isActive ? "2px solid #66bb6a" : "none",
-        transform: isActive ? "scale(1.02)" : "none",
+        border: isPro ? "2px solid #66bb6a" : "none",
         transition: "all 0.3s ease",
       }}
     >
@@ -95,8 +100,8 @@ function PlanCard({ plan, isActive }) {
 
         <Typography variant="body2" color="text.secondary">
           {isFree
-            ? `${plan.characters.toLocaleString()} characters/month`
-            : `Includes ${plan.characters.toLocaleString()} character tokens`}
+            ? `${plan.characters.toLocaleString()} characters (included)`
+            : `+${plan.characters.toLocaleString()} characters`}
         </Typography>
       </CardContent>
 
@@ -108,14 +113,20 @@ function PlanCard({ plan, isActive }) {
           onClick={handleUpgrade}
           sx={{ mt: 2, borderRadius: 2 }}
         >
-          Buy Now
+          {loading ? (
+            <>
+              <CircularProgress color="white" size={18} sx={{ mr: 1 }} />
+              Redirecting...
+            </>
+          ) : (
+            "Buy Now"
+          )}
         </Button>
       ) : (
         <Button
           variant="contained"
           fullWidth
           size="large"
-          onClick={handleUpgrade}
           sx={{ mt: 2, borderRadius: 2 }}
           disabled
         >

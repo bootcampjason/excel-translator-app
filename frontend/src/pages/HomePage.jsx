@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import * as XLSX from "xlsx";
 import FileUpload from "../components/FileUpload";
 import LanguageSelector from "../components/LanguageSelector";
@@ -7,16 +7,13 @@ import SheetSelector from "../components/SheetSelector";
 import ClearAllButton from "../components/ClearAllButton";
 import RestartButton from "../components/RestartButton";
 import { Typography, Box, Paper, Button, Snackbar, Alert } from "@mui/material";
-
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import "../App.css";
 import TranslationVisual from "../assets/images/excel_tranlate_visual.png";
+import { UserContext } from "../context/UserContext";
 
 function HomePage() {
-  const [user, setUser] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ko");
@@ -30,6 +27,7 @@ function HomePage() {
   const [isCompleted, setIsCompleted] = useState(false);
   const [resetTrigger, setResetTrigger] = useState(0);
   const [showPreviewMessage, setShowPreviewMessage] = useState(false);
+  const [totalChars, setTotalChars] = useState(0);
 
   const handleFileReady = async (file) => {
     setUploadedFiles((prev) => [...prev, file]);
@@ -63,17 +61,12 @@ function HomePage() {
     setResetTrigger((prev) => prev + 1); // increment to trigger reset in FileUpload
   };
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, setUser);
-    return unsub;
-  }, []);
-
   return (
     <>
       <Box
-        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 2, pt: 2 }}
+        sx={{ minHeight: "100vh", backgroundColor: "#f9fafc", px: 0, pt: 2 }}
       >
-        <div style={{ padding: 20, maxWidth: 800, margin: "0 auto" }}>
+        <div style={{ padding: 20, maxWidth: 720, margin: "0 auto" }}>
           <Box textAlign="center" mb={3}>
             <Typography variant="h4" fontWeight={700} gutterBottom>
               Translate Excel Files
@@ -127,6 +120,7 @@ function HomePage() {
             onFileReady={handleFileReady}
             resetTrigger={resetTrigger}
             disabled={isTranslating || isCompleted}
+            setTotalChars={setTotalChars}
           />
 
           {uploadedFiles.length > 0 && !isTranslating && !isCompleted && (
@@ -139,6 +133,19 @@ function HomePage() {
               <Typography fontWeight={500}>
                 ✅ {uploadedFiles.length} file
                 {uploadedFiles.length > 1 ? "s" : ""} uploaded
+                {totalChars > 0 && (
+                  <Box
+                    component="span"
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: "bold",
+                      ml: 1,
+                      display: "inline-block",
+                    }}
+                  >
+                    — {totalChars.toLocaleString()} characters
+                  </Box>
+                )}
               </Typography>
               <ClearAllButton onClear={handleReset} />
             </Box>
@@ -167,13 +174,12 @@ function HomePage() {
               targetLang={targetLang}
               isTranslating={isTranslating}
               setIsTranslating={setIsTranslating}
-              fileStatuses={fileStatuses}
               setFileStatuses={setFileStatuses}
               setGlobalProgress={setGlobalProgress}
               setCompletionMessage={setCompletionMessage}
               isCompleted={isCompleted}
               setIsCompleted={setIsCompleted}
-              user={user}
+              totalChars={totalChars}
             />
 
             {isCompleted && <RestartButton handleReset={handleReset} />}

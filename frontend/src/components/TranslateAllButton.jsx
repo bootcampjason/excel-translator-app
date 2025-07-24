@@ -1,11 +1,21 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { Button, Box, Snackbar, Alert, Dialog, DialogTitle, DialogContent, DialogActions, Typography } from '@mui/material';
-import { translateExcelFile } from '../helpers/translateExcel';
-import { saveAs } from 'file-saver';
-import TranslateIcon from '@mui/icons-material/GTranslate';
-import { useNavigate } from 'react-router-dom';
-import { auth } from '../firebase';
-import StopIcon from '@mui/icons-material/Stop';
+import React, { useRef, useState, useEffect, useContext } from "react";
+import {
+  Button,
+  Box,
+  Snackbar,
+  Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+} from "@mui/material";
+import { translateExcelFile } from "../helpers/translateExcel";
+import { saveAs } from "file-saver";
+import TranslateIcon from "@mui/icons-material/GTranslate";
+import { useNavigate } from "react-router-dom";
+import StopIcon from "@mui/icons-material/Stop";
+import { UserContext } from "../context/UserContext";
 
 function TranslateAllButton({
   uploadedFiles,
@@ -13,27 +23,40 @@ function TranslateAllButton({
   targetLang,
   isTranslating,
   setIsTranslating,
-  fileStatuses,
   setFileStatuses,
   setGlobalProgress,
   setCompletionMessage,
   isCompleted,
   setIsCompleted,
-  onCancelRefReset, // new optional prop for start-over reset
+  onCancelRefReset, // optional prop for start-over reset
+  totalChars
 }) {
   const navigate = useNavigate();
   const shouldCancelRef = useRef(false);
-  const [snack, setSnack] = useState({ open: false, message: '', severity: 'info' });
+  const [snack, setSnack] = useState({
+    open: false,
+    message: "",
+    severity: "info",
+  });
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const { user, usage } = useContext(UserContext);
+  const { charUsed, charLimit } = usage || {};
 
-  const showSnackbar = (message, severity = 'info') => {
+  const showSnackbar = (message, severity = "info") => {
     setSnack({ open: true, message, severity });
   };
 
   const handleTranslateAll = async () => {
-    const currentUser = auth.currentUser;
-    if (!currentUser) {
-      navigate('/login');
+    const currentUser = user;
+    if (!currentUser?.uid) {
+      navigate("/login");
+      return;
+    }
+    if (charLimit - charUsed < totalChars) {
+      showSnackbar(
+        "You don't have enough tokens. Please upgrade your plan.",
+        "error"
+      );
       return;
     }
 
@@ -50,26 +73,34 @@ function TranslateAllButton({
       const file = uploadedFiles[i];
 
       if (shouldCancelRef.current) {
-        showSnackbar('Translation cancelled.');
+        showSnackbar("Translation cancelled.");
         break;
       }
 
       try {
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Translating' }));
+        setFileStatuses((prev) => ({ ...prev, [file.name]: "Translating" }));
 
-        const { translatedBlob, filename } = await translateExcelFile(file, sourceLang, targetLang, currentUser);
+        const { translatedBlob, filename } = await translateExcelFile(
+          file,
+          sourceLang,
+          targetLang,
+          currentUser
+        );
         saveAs(translatedBlob, filename);
 
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Done' }));
+        setFileStatuses((prev) => ({ ...prev, [file.name]: "Done" }));
       } catch (err) {
         console.error(`[ERROR] ${file.name} failed to translate:`, err);
-        setFileStatuses(prev => ({ ...prev, [file.name]: 'Error' }));
-        localFileStatuses[file.name] = 'Error';
+        setFileStatuses((prev) => ({ ...prev, [file.name]: "Error" }));
+        localFileStatuses[file.name] = "Error";
 
-        if (err.message === 'Character limit exceeded') {
-        showSnackbar('❌ You have exceeded your monthly character limit. Please upgrade your plan.', 'error');
+        if (err.message === "Character limit exceeded") {
+          showSnackbar(
+            "❌ You have exceeded character limit. Please upgrade your plan.",
+            "error"
+          );
         } else {
-          showSnackbar(`❌ Failed to translate ${file.name}`, 'error');
+          showSnackbar(`❌ Failed to translate ${file.name}`, "error");
         }
       }
 
@@ -79,16 +110,20 @@ function TranslateAllButton({
     }
     setIsTranslating(false);
 
-    const hadError = Object.values(localFileStatuses).includes('Error');
+    const hadError = Object.values(localFileStatuses).includes("Error");
     const wasCancelled = shouldCancelRef.current;
     setIsCompleted(true);
 
     if (!wasCancelled && !hadError) {
       // setIsCompleted(true);
       setGlobalProgress(100);
-      setCompletionMessage('✅ All files have been translated and downloaded successfully.');
+      setCompletionMessage(
+        "✅ All files have been translated and downloaded successfully."
+      );
     } else if (hadError) {
-      setCompletionMessage('⚠️ Some files failed to translate. Please check the status and try again.');
+      setCompletionMessage(
+        "⚠️ Some files failed to translate. Please check the status and try again."
+      );
     }
   };
 
@@ -105,7 +140,7 @@ function TranslateAllButton({
         color="primary"
         size="large"
         startIcon={<TranslateIcon />}
-        disabled={uploadedFiles.length === 0 || isTranslating ||isCompleted }
+        disabled={uploadedFiles.length === 0 || isTranslating || isCompleted}
         onClick={handleTranslateAll}
         sx={{
           mt: 3,
@@ -113,10 +148,10 @@ function TranslateAllButton({
         }}
       >
         {isTranslating
-          ? 'Translating...'
+          ? "Translating..."
           : uploadedFiles.length > 1
-            ? 'Generate All Files'
-            : 'Generate File'}
+          ? "Generate All Files"
+          : "Generate File"}
       </Button>
       {isTranslating && (
         <Button
@@ -139,18 +174,24 @@ function TranslateAllButton({
         onClose={() => setShowCancelConfirm(false)}
         BackdropProps={{
           sx: {
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(1px)',
+            backgroundColor: "rgba(0, 0, 0, 0.5)",
+            backdropFilter: "blur(1px)",
           },
-        }}>
+        }}
+      >
         <DialogTitle>Cancel Translation?</DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to stop the translation process? Files that are not yet translated will not be processed.
+            Are you sure you want to stop the translation process? Files that
+            are not yet translated will not be processed.
           </Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setShowCancelConfirm(false)} size="large" color="primary">
+          <Button
+            onClick={() => setShowCancelConfirm(false)}
+            size="large"
+            color="primary"
+          >
             No, Continue
           </Button>
           <Button onClick={handleCancelConfirm} size="large" color="error">
@@ -162,9 +203,9 @@ function TranslateAllButton({
         open={snack.open}
         autoHideDuration={3000}
         onClose={() => setSnack({ ...snack, open: false })}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snack.severity} sx={{ width: '100%' }}>
+        <Alert severity={snack.severity} sx={{ width: "100%" }}>
           {snack.message}
         </Alert>
       </Snackbar>

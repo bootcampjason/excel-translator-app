@@ -1,6 +1,7 @@
 from openpyxl import load_workbook
 from io import BytesIO
 
+
 def estimate_chars_in_file(file_storage):
     in_memory_file = BytesIO(file_storage.read())
     wb = load_workbook(in_memory_file, read_only=True)

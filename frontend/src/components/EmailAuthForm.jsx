@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Box,
   TextField,
@@ -7,112 +7,177 @@ import {
   Link,
   Snackbar,
   Alert,
-} from '@mui/material';
-import { auth } from '../firebase';
+} from "@mui/material";
+import { auth, db } from "../firebase";
+import { doc, getDoc, setDoc, updateDoc } from "firebase/firestore";
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   sendPasswordResetEmail,
-} from 'firebase/auth';
-import { useNavigate } from 'react-router-dom';
-import Divider from '@mui/material/Divider';
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+  sendEmailVerification,
+} from "firebase/auth";
+import { useNavigate } from "react-router-dom";
+import Divider from "@mui/material/Divider";
+import { defaultUserSchema } from "../utils/defaultUserSchema.ts";
 
 function EmailAuthForm({ onClose }) {
-  const [mode, setMode] = useState('login'); // 'login', 'signup', 'reset'
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [snack, setSnack] = useState({ open: false, message: '', severity: 'success' });
+  const [mode, setMode] = useState("login"); // 'login', 'signup', 'reset'
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [showResend, setShowResend] = useState(false);
+  const [snack, setSnack] = useState({
+    open: false,
+    message: "",
+    severity: "success",
+  });
 
   const navigate = useNavigate();
 
-  const showSnackbar = (message, severity = 'success') => {
+  const showSnackbar = (message, severity = "success") => {
     setSnack({ open: true, message, severity });
   };
 
   const errorMsg = (code) => {
     switch (code) {
-      case 'auth/invalid-email':
-        return 'Invalid email address format.';
-      case 'auth/user-not-found':
-        return 'No account found with this email.';
-      case 'auth/wrong-password':
-        return 'Incorrect password.';
-      case 'auth/email-already-in-use':
-        return 'This email is already registered.';
-      case 'auth/weak-password':
-        return 'Password should be at least 6 characters.';
-      case 'auth/missing-password':
-        return 'Password is required.';
+      case "auth/invalid-email":
+        return "Invalid email address format.";
+      case "auth/user-not-found":
+        return "No account found with this email.";
+      case "auth/wrong-password":
+        return "Incorrect password.";
+      case "auth/email-already-in-use":
+        return "This email is already registered.";
+      case "auth/weak-password":
+        return "Password should be at least 6 characters.";
+      case "auth/missing-password":
+        return "Password is required.";
       default:
-        return 'Incorrect email or password. Please try again.';
+        return "Incorrect email or password. Please try again.";
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setSnack({ open: false, message: '', severity: 'success' });
+    setSnack({ open: false, message: "", severity: "success" });
 
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      showSnackbar('Email is required.', 'error');
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
+
+    if (!emailRegex.test(trimmedEmail)) {
+      showSnackbar("Please enter a valid email address.", "error");
       return;
     }
 
-    if (mode === 'reset') {
+    if (mode === "reset") {
       try {
         await sendPasswordResetEmail(auth, trimmedEmail);
-        showSnackbar('Password reset email sent.');
-        setMode('login');
+        showSnackbar("Password reset email sent.");
+        setMode("login");
       } catch (err) {
-        showSnackbar(errorMsg(err.code), 'error');
+        showSnackbar(errorMsg(err.code), "error");
       }
       return;
     }
 
-    if (password.length < 6) {
-      showSnackbar('Password must be at least 6 characters long.', 'error');
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*[\W_]).{8,}$/;
+
+    if (!passwordRegex.test(password)) {
+      showSnackbar(
+        "Password must be at least 8 characters long and include uppercase, lowercase, and a special character.",
+        "error"
+      );
       return;
     }
 
     try {
-      if (mode === 'login') {
-        await signInWithEmailAndPassword(auth, trimmedEmail, password);
-        showSnackbar('✅ Logged in successfully.');
+      let result;
+      if (mode === "login") {
+        result = await signInWithEmailAndPassword(auth, trimmedEmail, password);
+
+        if (!result.user.emailVerified) {
+          await auth.signOut();
+          showSnackbar(
+            "Please verify your email first. Check your spam inbox",
+            "error"
+          );
+          setShowResend(true);
+          return;
+        }
+
+        console.log("[INFO] User logged in");
+        showSnackbar("✅ Logged in successfully.");
+
+        setTimeout(() => {
+          onClose?.();
+          navigate("/");
+        }, 1000);
       } else {
-        await createUserWithEmailAndPassword(auth, trimmedEmail, password);
-        showSnackbar('✅ Account created! You are now signed in.');
+        const result = await createUserWithEmailAndPassword(
+          auth,
+          trimmedEmail,
+          password
+        );
+        await sendEmailVerification(result.user);
+        await auth.signOut();
+        console.log("[INFO] Created new user document");
+        showSnackbar("✅ Account created! Please check your email to verify.");
+
+        return;
       }
 
-      setTimeout(() => {
-        onClose?.();
-        navigate('/');
-      }, 1000);
+      const user = result.user;
+      const userDocRef = doc(db, "users", user.uid);
+      const userSnap = await getDoc(userDocRef);
+
+      if (!userSnap.exists()) {
+        // First time sign-up → create full doc
+        await setDoc(userDocRef, defaultUserSchema(user.email));
+        console.log("[INFO] Created new user document for", user.email);
+      } else {
+        // Returning user → update lastLogonTimestamp only
+        await updateDoc(userDocRef, {
+          lastLogonTimestamp: new Date(),
+        });
+      }
     } catch (err) {
-      showSnackbar(errorMsg(err.code), 'error');
+      showSnackbar(errorMsg(err.code), "error");
     }
   };
 
   return (
     <>
-    <Divider>Or</Divider>
+      <Divider>Or</Divider>
       <Box component="form" onSubmit={handleSubmit} mt={3}>
-
-        {mode === 'reset' && (
-          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
+        {mode === "reset" && (
+          <Typography
+            variant="h6"
+            align="center"
+            color="textSecondary"
+            gutterBottom
+          >
             Reset your password
           </Typography>
         )}
 
-        {mode === 'login' && (
-          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
+        {mode === "login" && (
+          <Typography
+            variant="h6"
+            align="center"
+            color="textSecondary"
+            gutterBottom
+          >
             Login with your email
           </Typography>
         )}
 
-        {mode === 'signup' && (
-          <Typography variant="h6" align="center" color="textSecondary" gutterBottom>
-            Create new account 
+        {mode === "signup" && (
+          <Typography
+            variant="h6"
+            align="center"
+            color="textSecondary"
+            gutterBottom
+          >
+            Create new account
           </Typography>
         )}
 
@@ -126,7 +191,7 @@ function EmailAuthForm({ onClose }) {
           sx={{ mb: 2 }}
         />
 
-        {mode !== 'reset' && (
+        {mode !== "reset" && (
           <TextField
             fullWidth
             type="password"
@@ -139,34 +204,39 @@ function EmailAuthForm({ onClose }) {
         )}
 
         <Button type="submit" fullWidth variant="contained" color="primary">
-          {mode === 'login'
-            ? 'Log In'
-            : mode === 'signup'
-              ? 'Sign Up'
-              : 'Send Reset Link'}
+          {mode === "login"
+            ? "Log In"
+            : mode === "signup"
+            ? "Sign Up"
+            : "Send Reset Link"}
         </Button>
 
-        <Box mt={2} display="flex" justifyContent="space-between" flexWrap="wrap">
-          {mode !== 'reset' ? (
+        <Box
+          mt={2}
+          display="flex"
+          justifyContent="space-between"
+          flexWrap="wrap"
+        >
+          {mode !== "reset" ? (
             <>
               <Link
                 component="button"
                 type="button"
                 variant="body2"
                 onClick={() =>
-                  setMode((prev) => (prev === 'login' ? 'signup' : 'login'))
+                  setMode((prev) => (prev === "login" ? "signup" : "login"))
                 }
               >
-                {mode === 'login'
+                {mode === "login"
                   ? "Don't have an account? Sign up"
-                  : 'Already have an account?'}
+                  : "Already have an account?"}
               </Link>
 
               <Link
                 component="button"
                 type="button"
                 variant="body2"
-                onClick={() => setMode('reset')}
+                onClick={() => setMode("reset")}
               >
                 Forgot Password?
               </Link>
@@ -176,7 +246,7 @@ function EmailAuthForm({ onClose }) {
               component="button"
               type="button"
               variant="body2"
-              onClick={() => setMode('login')}
+              onClick={() => setMode("login")}
             >
               Back to login
             </Link>
@@ -188,9 +258,9 @@ function EmailAuthForm({ onClose }) {
         open={snack.open}
         autoHideDuration={3000}
         onClose={() => setSnack((prev) => ({ ...prev, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert severity={snack.severity} sx={{ width: '100%' }}>
+        <Alert severity={snack.severity} sx={{ width: "100%" }}>
           {snack.message}
         </Alert>
       </Snackbar>

@@ -1,5 +1,5 @@
 // src/components/AuthAppBar.jsx
-import React, { useEffect, useState } from "react";
+import React, { useContext, useEffect, useState } from "react";
 import {
   AppBar,
   Toolbar,
@@ -15,21 +15,16 @@ import {
   CircularProgress,
   Tooltip,
 } from "@mui/material";
-import { auth } from "../firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { auth, db } from "../firebase";
+import { signOut } from "firebase/auth";
 import FileSpeakLogoWhite from "../assets/images/FileSpeakLogo_white.png";
-import { Link, useNavigate } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
-import { db } from "../firebase";
-
-const PLANS = {
-  free: 10000,
-  starter: 50000,
-  pro: 200000,
-};
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { UserContext } from "../context/UserContext";
 
 function AuthAppBar() {
-  const [user, setUser] = useState(null);
+  const { user, usage, currentPlan, loading } = useContext(UserContext);
+  const { charUsed = 0, charLimit = 0 } = usage;
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState({
@@ -37,29 +32,21 @@ function AuthAppBar() {
     message: "",
     severity: "success",
   });
-  const [charUsed, setCharUsed] = useState(0);
-  const [charLimit, setCharLimit] = useState(10000);
 
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const fetchUsage = async (uid) => {
-    try {
-      const userDoc = await getDoc(doc(db, "users", uid));
-      if (userDoc.exists()) {
-        const data = userDoc.data();
-        const plan = data.plan || "free";
-        const limit = PLANS[plan] || 10000;
-        setCharUsed(data.charUsedThisMonth || 0);
-        setCharLimit(limit);
-      }
-    } catch (error) {
-      console.error("[ERROR] Failed to fetch user usage:", error);
-    }
-  };
+  console.log("[INFO] usage:", usage);
 
   const handleLogout = async () => {
     setIsSigningOut(true);
     try {
+      if (user?.uid) {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          lastSignoutTimestamp: new Date(),
+        });
+      }
       await signOut(auth);
       setMessage({
         open: true,
@@ -78,15 +65,15 @@ function AuthAppBar() {
     }
   };
 
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (currentUser) => {
-      setUser(currentUser);
-      if (currentUser?.uid) {
-        fetchUsage(currentUser.uid);
-      }
-    });
-    return () => unsub();
-  }, []);
+  if (loading) {
+    return (
+      <AppBar position="sticky" color="primary" elevation={3}>
+        <Toolbar>
+          <Typography variant="body1">Loading...</Typography>
+        </Toolbar>
+      </AppBar>
+    );
+  }
 
   return (
     <>
@@ -127,8 +114,8 @@ function AuthAppBar() {
                 title={
                   <Box sx={{ p: 1 }}>
                     <Typography variant="body2" sx={{ fontWeight: 500 }}>
-                      {charUsed.toLocaleString()} /{" "}
-                      {charLimit.toLocaleString()} characters used
+                      {charUsed.toLocaleString()} / {charLimit.toLocaleString()}{" "}
+                      characters used
                     </Typography>
                   </Box>
                 }
@@ -155,11 +142,7 @@ function AuthAppBar() {
               >
                 <Typography variant="body2" sx={{ fontWeight: 500 }}>
                   {user.email}{" "}
-                  <Typography
-                    component="span"
-                    variant="body2"
-                    color="#d5dbdb"
-                  >
+                  <Typography component="span" variant="body2" color="#d5dbdb">
                     ({charUsed.toLocaleString()} / {charLimit.toLocaleString()})
                   </Typography>
                 </Typography>
@@ -169,10 +152,10 @@ function AuthAppBar() {
                 variant="contained"
                 size="small"
                 color="secondary"
-                onClick={() => navigate('/upgrade')}
+                onClick={() => navigate("/upgrade")}
                 sx={{
                   fontWeight: 600,
-                  textTransform: 'none',
+                  textTransform: "none",
                   borderRadius: 20,
                 }}
               >
