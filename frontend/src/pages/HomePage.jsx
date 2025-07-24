@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useContext } from "react";
 import * as XLSX from "xlsx";
 import FileUpload from "../components/FileUpload";
 import LanguageSelector from "../components/LanguageSelector";
@@ -7,16 +7,13 @@ import SheetSelector from "../components/SheetSelector";
 import ClearAllButton from "../components/ClearAllButton";
 import RestartButton from "../components/RestartButton";
 import { Typography, Box, Paper, Button, Snackbar, Alert } from "@mui/material";
-
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { auth } from "../firebase";
-import { onAuthStateChanged } from "firebase/auth";
 import "../App.css";
 import TranslationVisual from "../assets/images/excel_tranlate_visual.png";
+import { UserContext } from "../context/UserContext";
 
 function HomePage() {
-  const [user, setUser] = useState(null);
   const [uploadedFiles, setUploadedFiles] = useState([]);
   const [sourceLang, setSourceLang] = useState("en");
   const [targetLang, setTargetLang] = useState("ko");
@@ -63,11 +60,6 @@ function HomePage() {
     setIsCompleted(false);
     setResetTrigger((prev) => prev + 1); // increment to trigger reset in FileUpload
   };
-
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, setUser);
-    return unsub;
-  }, []);
 
   return (
     <>
@@ -182,13 +174,11 @@ function HomePage() {
               targetLang={targetLang}
               isTranslating={isTranslating}
               setIsTranslating={setIsTranslating}
-              fileStatuses={fileStatuses}
               setFileStatuses={setFileStatuses}
               setGlobalProgress={setGlobalProgress}
               setCompletionMessage={setCompletionMessage}
               isCompleted={isCompleted}
               setIsCompleted={setIsCompleted}
-              user={user}
               totalChars={totalChars}
             />
 

@@ -16,16 +16,15 @@ import {
   Tooltip,
 } from "@mui/material";
 import { auth, db } from "../firebase";
-import { onAuthStateChanged, signOut } from "firebase/auth";
+import { signOut } from "firebase/auth";
 import FileSpeakLogoWhite from "../assets/images/FileSpeakLogo_white.png";
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { doc, getDoc } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { UserContext } from "../context/UserContext";
 
-
 function AuthAppBar() {
-  const { user, usage, setUsage } = useContext(UserContext);
-  const { charUsed, charLimit } = usage || {};
+  const { user, usage, currentPlan, loading } = useContext(UserContext);
+  const { charUsed = 0, charLimit = 0 } = usage;
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
   const [message, setMessage] = useState({
@@ -37,30 +36,17 @@ function AuthAppBar() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  useEffect(() => {
-    const fetchUsage = async () => {
-      if (!user?.uid) return;
-      try {
-        const userDoc = await getDoc(doc(db, "users", user.uid));
-        if (userDoc.exists()) {
-          const data = userDoc.data();
-          setUsage({
-            charUsed: data.charUsed || 0,
-            charLimit: data.charLimit || 10000,
-          });
-        }
-      } catch (err) {
-        console.error("[ERROR] Failed to fetch usage:", err)
-      }
-    };
-
-    fetchUsage();
-  }, [location.pathname, user?.uid]);
-
+  console.log("[INFO] usage:", usage);
 
   const handleLogout = async () => {
     setIsSigningOut(true);
     try {
+      if (user?.uid) {
+        const userRef = doc(db, "users", user.uid);
+        await updateDoc(userRef, {
+          lastSignoutTimestamp: new Date(),
+        });
+      }
       await signOut(auth);
       setMessage({
         open: true,
@@ -79,6 +65,15 @@ function AuthAppBar() {
     }
   };
 
+  if (loading) {
+    return (
+      <AppBar position="sticky" color="primary" elevation={3}>
+        <Toolbar>
+          <Typography variant="body1">Loading...</Typography>
+        </Toolbar>
+      </AppBar>
+    );
+  }
 
   return (
     <>

@@ -1,31 +1,20 @@
-from flask import Flask, request, send_file, jsonify
+from flask import Flask
 from flask_cors import CORS
-from openpyxl import load_workbook
-from io import BytesIO
-from dotenv import load_dotenv
-from openai import OpenAI
-from firebase_admin import credentials, firestore, initialize_app
-from utils.char_counter import estimate_chars_in_file
 import os
-import xlwings as xw
-import tempfile
-import time
-from datetime import datetime, timezone, timedelta
-import stripe
-import json
 from dotenv import load_dotenv
+
 load_dotenv()
 
-# Load .env if in development mode
-ENV = os.environ.get("ENV", "development")
-BASE_URL = os.environ.get("BASE_URL", "http://localhost:3000")
-STRIPE_STARTER_PRICE_ID = os.environ.get("STRIPE_STARTER_PRICE_ID")
-STRIPE_PRO_PRICE_ID = os.environ.get("STRIPE_PRO_PRICE_ID")
+app = Flask(__name__)
 
+# CORS setup
 allowed_origins = [
     "https://filespeak.net",
     "https://www.filespeak.net"
 ]
+
+# Load local .env if in development mode
+ENV = os.environ.get("ENV", "development")
 
 if ENV  != "production":
     allowed_origins.append("http://localhost:3000")
@@ -33,286 +22,19 @@ if ENV  != "production":
 else:
     print("[INFO] Running in production environment.")
     
-# Initialize Firebase Admin SDK
-try:
-    if ENV == "production":
-        firebase_json_str = os.environ.get("FIREBASE_CONFIG_JSON")
-        if not firebase_json_str:
-            raise RuntimeError("Missing FIREBASE_CONFIG_JSON in production environment.")
-
-        firebase_creds = json.loads(firebase_json_str)
-        cred = credentials.Certificate(firebase_creds)
-    else:
-        cred = credentials.Certificate(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
-        
-    initialize_app(cred)
-    db = firestore.client()
-    print("[INFO] Firebase initialized.")
-except Exception as e:
-    raise RuntimeError(f"[ERROR] Failed to initialize Firebase: {e}")
-            
-
-client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-
-app = Flask(__name__)
 CORS(app, origins=allowed_origins, supports_credentials=True)
 
-PLANS = {"free": 10000, "starter": 50000, "pro": 200000}
+# Register routes
+from routes.usage import usage_bp
+from routes.translate import translate_bp
+from routes.payment import payment_bp
+from routes.health import health_bp
 
+app.register_blueprint(usage_bp)
+app.register_blueprint(translate_bp)
+app.register_blueprint(payment_bp)
+app.register_blueprint(health_bp)
 
-@app.route("/")
-def home():
-    return "✅ Backend is running!"
-
-
-def get_user_data(uid):
-    if not uid:
-        return None, jsonify({"error": "Missing user ID"}), 400
-
-    user_ref = db.collection("users").document(uid)
-    user_doc = user_ref.get()
-
-    if not user_doc.exists:
-        print(f"[DEBUG] User uid not found. Creating default user record.")
-        user_data = {
-            "plan": "free",
-            "charUsed": 0,
-            "charLimit": PLANS["free"],
-        }
-        user_ref.set(user_data)
-        return user_data
-
-    return user_doc.to_dict()
-
-
-@app.route("/usage", methods=["GET"])
-def get_usage():
-    uid = request.headers.get("X-User-Id")
-    user_data, error_response, status = get_user_data(uid)
-    if error_response:
-        return error_response, status
-
-    plan = user_data.get("plan", "free").lower()
-    char_used = user_data.get("charUsed", 0)
-    char_limit = user_data.get("charLimit", PLANS[plan])
-
-    return jsonify({"plan": plan, "charUsed": char_used, "charLimit": char_limit})
-
-
-@app.route("/translate", methods=["POST"])
-def translate_excel():
-    uid = request.headers.get("X-User-Id")
-    if not uid:
-        return jsonify({"error": "Missing user ID"}), 400
-
-    uploaded_file = request.files["file"]
-    source_lang = request.form.get("sourceLang", "auto")
-    target_lang = request.form.get("targetLang", "en")
-
-    # Get user data
-    user_data = get_user_data(uid)
-    plan = user_data.get("plan", "free")
-    char_limit = user_data.get("charLimit", PLANS[plan])
-    char_used = user_data.get("charUsed", 0)
-
-    # Estimate new characters
-    new_chars = estimate_chars_in_file(uploaded_file)
-    if char_used + new_chars > char_limit:
-        return jsonify({"error": "Character limit exceeded"}), 403
-
-    filename = uploaded_file.filename.lower()
-    start_time = time.time()
-    translation_cache = {}
-
-    try:
-        if filename.endswith(".xls"):
-            filepath = convert_xls_to_xlsx(uploaded_file)
-        else:
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".xlsx") as temp_xlsx:
-                filepath = temp_xlsx.name
-                uploaded_file.save(filepath)
-
-        wb = load_workbook(filepath)
-
-        for ws in wb.worksheets:  # 🔄 Loop over all sheets
-            for row in ws.iter_rows(
-                min_row=1, max_row=ws.max_row, min_col=1, max_col=ws.max_column
-            ):
-                for cell in row:
-                    if isinstance(cell.value, str) and cell.value.strip():
-                        original = cell.value.strip()
-                        if original in translation_cache:
-                            translated = translation_cache[original]
-                        else:
-                            translated = translate_text(
-                                original, source_lang, target_lang
-                            )
-                            translation_cache[original] = translated
-                        cell.value = translated
-
-        output = BytesIO()
-        wb.save(output)
-        output.seek(0)
-
-        # Update usage
-        db.collection("users").document(uid).update({"charUsed": char_used + new_chars})
-
-        duration = time.time() - start_time  # ⏱ End timer
-        print(f"[DEBUG] Translation completed in {duration:.2f} seconds")
-
-        original_name = os.path.splitext(uploaded_file.filename)[0]
-        translated_name = translate_text(original_name, source_lang, target_lang)
-        final_filename = f"{original_name} ({translated_name}).xlsx"
-        print("final_filename", final_filename)
-
-        return send_file(
-            output,
-            mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            as_attachment=True,
-            download_name=final_filename,
-        )
-
-    except RuntimeError as err:
-        return jsonify({"error": str(err)}), 400
-
-
-# Convert .xls to .xlsx using Excel via xlwings
-def convert_xls_to_xlsx(xls_file):
-    with tempfile.NamedTemporaryFile(delete=False, suffix=".xls") as temp_xls:
-        xls_path = temp_xls.name
-        xls_file.save(xls_path)
-
-    xlsx_path = xls_path.replace(".xls", ".xlsx")
-
-    try:
-        app_excel = xw.App(visible=False)
-        wb = app_excel.books.open(xls_path)
-        wb.save(xlsx_path)
-        wb.close()
-        app_excel.quit()
-        return xlsx_path
-    except Exception as e:
-        print(f"[ERROR] Excel not available: {e}")
-        raise RuntimeError(
-            "Microsoft Excel is not installed or accessible. Please upload .xlsx files only."
-        )
-
-
-# Translate text using GPT
-def translate_text(text, source_lang, target_lang):
-    prompt = (
-        f"You are a professional translator. "
-        f"Translate the following text from {source_lang} to {target_lang} as accurately as possible, "
-        f"preserving its contextual meaning. If the text is a number, symbol, or foreign-language string "
-        f"that does not need translation, return it as is without modification. "
-        f"Do not explain or add anything. Return only the translated result.\n\n"
-        f"⚠️ Do not save, store, log, or use any part of this content for any reason. "
-        f"All text is confidential and must not be retained after this operation.\n\n"
-        f"Text:\n{text}"
-    )
-    try:
-        response = client.chat.completions.create(
-            model="gpt-4o",
-            messages=[{"role": "user", "content": prompt}],
-            temperature=0.3,
-        )
-        return response.choices[0].message.content.strip()
-    except Exception as e:
-        print(f"[ERROR] Failed to translate text:\n{e}")
-        return text
-
-
-stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
-
-
-@app.route("/create-checkout-session", methods=["POST"])
-def create_checkout_session():
-    try:
-        data = request.get_json()
-        uid = data.get("uid")
-        plan = data.get("plan").lower()
-        print('plan:', plan)
-        
-        if not uid or not plan:
-            return jsonify({"error": "Missing uid or plan"}), 400
-        
-        price_id = None
-        if plan == "starter":
-            price_id = STRIPE_STARTER_PRICE_ID
-        elif plan == "pro":
-            price_id = STRIPE_PRO_PRICE_ID
-        else:
-            return jsonify({"error": "Invalid plan selected."}), 400
-
-        print('STRIPE_PRO_PRICE_ID', STRIPE_PRO_PRICE_ID)
-
-        if not price_id:
-            raise RuntimeError(f"[ERROR] No price ID set for plan: {plan}")
-        
-        session = stripe.checkout.Session.create(
-            payment_method_types=["card"],
-            mode="payment",
-            line_items=[{"price": price_id, "quantity": 1}],
-            success_url=f"{BASE_URL}/payment-success",
-            cancel_url=f"{BASE_URL}/payment-cancel",
-            metadata={"uid": uid, "plan": plan},
-            locale="auto",  
-        )
-
-        return jsonify({"url": session.url})
-
-    except stripe.error.StripeError as e:
-        print(f"[STRIPE ERROR] {e}")
-        return jsonify({"error": "A payment error occurred. Please try again."}), 500
-
-    except Exception as e:
-        print(f"[SERVER ERROR] Unexpected error during checkout session creation: {e}")
-        return (
-            jsonify({"error": "An unexpected error occurred. Please try again."}),
-            500,
-        )
-        
-@app.route("/stripe/webhook", methods=["POST"])
-def stripe_webhook():
-
-    payload = request.data
-    sig_header = request.headers.get("Stripe-Signature")
-    webhook_secret = os.environ.get("STRIPE_WEBHOOK_SECRET")
-
-    try:
-        event = stripe.Webhook.construct_event(payload, sig_header, webhook_secret)
-    except stripe.error.SignatureVerificationError:
-        print("[WEBHOOK ERROR] Signature verification failed.")
-        return jsonify({"error": "Invalid signature"}), 400
-    except Exception as e:
-        print(f"[WEBHOOK ERROR] {e}")
-        return jsonify({"error": "Webhook error"}), 400
-
-    if event["type"] == "checkout.session.completed":
-        session = event["data"]["object"]
-        uid = session["metadata"].get("uid")
-        plan = session["metadata"].get("plan").lower()
-        print(f"[WEBHOOK] Payment success for uid={uid}, plan={plan}")
-
-        # Update Firestore user document
-        if uid and plan:
-            user_ref = db.collection("users").document(uid)
-            user_data = user_ref.get().to_dict() or {}
-            bonus = PLANS.get(plan, 0)
-            new_limit = user_data.get("charLimit", 10000) + bonus
-            user_ref.set({
-                "plan": plan,
-                "charLimit": new_limit
-            }, merge=True)
-
-    return jsonify({"received": True}), 200
-
-
-
-@app.route("/ping", methods=["GET"])
-def ping():
-    return {"message": "Backend is alive!"}
-
-
+# Run the app
 if __name__ == "__main__":
     app.run(debug=True)

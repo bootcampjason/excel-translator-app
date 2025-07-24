@@ -23,13 +23,12 @@ function TranslateAllButton({
   targetLang,
   isTranslating,
   setIsTranslating,
-  fileStatuses,
   setFileStatuses,
   setGlobalProgress,
   setCompletionMessage,
   isCompleted,
   setIsCompleted,
-  onCancelRefReset, // new optional prop for start-over reset
+  onCancelRefReset, // optional prop for start-over reset
   totalChars
 }) {
   const navigate = useNavigate();
@@ -53,9 +52,6 @@ function TranslateAllButton({
       navigate("/login");
       return;
     }
-    console.log('charLimit', charLimit)
-    console.log('charUsed', charUsed)
-    console.log('totalChars', totalChars)
     if (charLimit - charUsed < totalChars) {
       showSnackbar(
         "You don't have enough tokens. Please upgrade your plan.",

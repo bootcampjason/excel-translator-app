@@ -18,7 +18,6 @@ function FileUpload({ onFileReady, resetTrigger, disabled, setTotalChars }) {
           alert(`❌ ${file.name} is not a valid Excel file`);
           continue;
         }
-        console.log('file added!')
         const numOfChars = await estimateChars(file)
         setTotalChars(preChar => preChar + numOfChars)
         setFileName(file.name);
